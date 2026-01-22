@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spiele-Zentrale</title>
+    <style>
+        body { 
+            margin: 0; 
+            font-family: system-ui, -apple-system, sans-serif; 
+            background: #121212; 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+        h1 { 
+            color: gold; 
+            margin-bottom: 30px; 
+            font-size: 28px;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+        .container {
+            width: 90%;
+            max-width: 400px;
+        }
+        .menu-btn { 
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #2a2a2a; 
+            color: white; 
+            text-decoration: none; 
+            padding: 25px; 
+            margin-bottom: 15px; 
+            border-radius: 15px; 
+            font-size: 20px;
+            font-weight: bold;
+            border: 1px solid #333;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .menu-btn:active { 
+            transform: scale(0.96); 
+            background: #333; 
+        }
+        .icon { font-size: 30px; }
+        .domination { border-left: 8px solid #ff3b3b; }
+        .tictactoe { border-left: 8px solid #00bfff; }
+        p { color: #888; margin-top: 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <h1>🎮 Meine Apps</h1>
+
+    <div class="container">
+        <a href="domination.html" class="menu-btn domination">
+            <span>🎯 Dart Domination</span>
+            <span class="icon">❯</span>
+        </a>
+
+        <a href="tictactoe.html" class="menu-btn tictactoe">
+            <span>❌ Tic Tac Toe</span>
+            <span class="icon">❯</span>
+        </a>
+    </div>
+
+    <p>Tipp: "Zum Home-Bildschirm hinzufügen"</p>
+
+</body>
+</html>
