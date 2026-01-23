@@ -26,7 +26,7 @@
     #game-border.winner-glow { box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.6); border: 6px solid gold; }
 
     /* Scoreboard */
-    .scoreboard { display: flex; justify-content: space-around; margin: 15px 0; align-items: center; }
+    .scoreboard { display: flex; justify-content: space-around; margin: 10px 0; align-items: center; }
     .player-score { display: flex; flex-direction: column; width: 45%; padding: 10px; border-radius: 10px; transition: 0.3s; }
     .player-score.active { background: #333; transform: scale(1.05); border: 2px solid gold; }
     .p-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
@@ -34,9 +34,21 @@
     .p1 .p-name { color: #ff3b3b; }
     .p2 .p-name { color: #00bfff; }
     
-    /* Info Bar (Würfe & Modus) */
-    .info-bar { display: flex; justify-content: space-between; padding: 0 20px; margin-bottom: 10px; color: #888; font-size: 14px; font-weight: bold; }
-    .last-throw { color: gold; }
+    /* NEU: Throw History Display */
+    .history-container {
+        display: flex; flex-direction: column; gap: 5px; margin: 10px auto; max-width: 400px; padding: 0 10px;
+    }
+    .history-row {
+        display: flex; align-items: center; justify-content: space-between; background: #222; padding: 8px; border-radius: 8px;
+    }
+    .history-label { font-size: 12px; color: #888; width: 60px; text-align: left; font-weight: bold; }
+    .throws-wrapper { display: flex; gap: 5px; flex: 1; justify-content: flex-end; }
+    .throw-box {
+        width: 40px; height: 30px; background: #333; border: 1px solid #444; border-radius: 4px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; font-weight: bold; color: gold;
+    }
+    .throw-box.empty { color: #555; }
 
     /* Controls */
     #controls { max-width:440px; margin:auto; padding: 0 10px; }
@@ -80,9 +92,23 @@
     </div>
 </div>
 
-<div class="info-bar">
-    <span id="throws">Würfe: 3</span>
-    <span class="last-throw" id="lastThrowVal">Letzter: -</span>
+<div class="history-container">
+    <div class="history-row">
+        <div class="history-label">Letzter</div>
+        <div class="throws-wrapper">
+            <div class="throw-box" id="prev1">-</div>
+            <div class="throw-box" id="prev2">-</div>
+            <div class="throw-box" id="prev3">-</div>
+        </div>
+    </div>
+    <div class="history-row" style="border: 1px solid #444;">
+        <div class="history-label" style="color:white">Aktuell</div>
+        <div class="throws-wrapper">
+            <div class="throw-box" id="curr1">-</div>
+            <div class="throw-box" id="curr2">-</div>
+            <div class="throw-box" id="curr3">-</div>
+        </div>
+    </div>
 </div>
 
 <div id="controls">
@@ -115,20 +141,17 @@ const ROTATION_OFFSET = -9;
 const BOARD_R = 180;
 const BULL_R = 38;
 
-// Turnier Check
 const urlParams = new URLSearchParams(window.location.search);
 const isTournament = urlParams.get('tournament') === 'true';
-let startScore = 501; // Default
+let startScore = 501;
 
-// Namen laden
 let name1, name2;
 if (isTournament) {
     name1 = localStorage.getItem('tournament_p1') || "T1";
     name2 = localStorage.getItem('tournament_p2') || "T2";
     document.getElementById('homeBtn').style.display = 'none';
-    document.getElementById('modeContainer').style.display = 'none'; // Im Turnier fixe 501 (oder Logic anpassen)
+    document.getElementById('modeContainer').style.display = 'none';
     
-    // Serienstand
     let s1 = urlParams.get('s1');
     let s2 = urlParams.get('s2');
     let target = urlParams.get('target');
@@ -145,15 +168,18 @@ document.getElementById('name2').textContent = name2;
 
 // --- GAME STATE ---
 let scores = {1: 501, 2: 501};
-let startOfTurnScore = {1: 501, 2: 501}; // Für Bust-Regel
+let startOfTurnScore = {1: 501, 2: 501};
 let currentPlayer = 1;
 let throwsLeft = 3;
 let multiplier = 1;
 let gameOver = false;
-let history = []; // Für Undo
+let history = []; 
+
+// NEU: Arrays für die Anzeige
+let currentThrows = []; // Speichert Strings wie "T20", "D5"
+let prevThrows = ["-", "-", "-"]; // Speichert die Würfe des Gegners
 
 function initGame() {
-    // Startwert aus Select holen (außer im Turnier, da immer 501)
     if(!isTournament) startScore = parseInt(document.getElementById('startScoreSelect').value);
     
     scores = {1: startScore, 2: startScore};
@@ -163,6 +189,8 @@ function initGame() {
     multiplier = 1;
     gameOver = false;
     history = [];
+    currentThrows = [];
+    prevThrows = ["-", "-", "-"];
     
     document.getElementById("winner").textContent = "";
     setMulti(1);
@@ -174,7 +202,9 @@ function snapshot() {
     history.push(JSON.stringify({
         scores: {...scores},
         startOfTurnScore: {...startOfTurnScore},
-        currentPlayer, throwsLeft, multiplier, gameOver
+        currentPlayer, throwsLeft, multiplier, gameOver,
+        currentThrows: [...currentThrows],
+        prevThrows: [...prevThrows]
     }));
 }
 
@@ -187,6 +217,8 @@ function undo() {
     throwsLeft = s.throwsLeft;
     multiplier = s.multiplier;
     gameOver = s.gameOver;
+    currentThrows = s.currentThrows;
+    prevThrows = s.prevThrows;
     updateUI();
 }
 
@@ -197,17 +229,26 @@ function setMulti(m) {
     if(btn) btn.classList.add("active");
 }
 
+// Hilfsfunktion zur Formatierung (z.B. 3, 20 -> "T20")
+function formatThrow(m, n) {
+    if (n === 25) return m === 2 ? "D25" : "25"; // oder DB / B
+    if (m === 3) return "T" + n;
+    if (m === 2) return "D" + n;
+    return n.toString();
+}
+
 function nextTurn() {
     if(gameOver) return;
     snapshot();
     
-    // Bust Check: Wenn negativ, Score zurücksetzen
-    // (Hier eigentlich nicht nötig, da wir direkt beim Wurf prüfen, aber sicher ist sicher)
-    
-    // Spieler wechseln
+    // Aktuelle Würfe in "Letzter" verschieben
+    prevThrows = [...currentThrows];
+    while(prevThrows.length < 3) prevThrows.push("-"); // Auffüllen
+    currentThrows = []; // Reset
+
     currentPlayer = currentPlayer === 1 ? 2 : 1;
     throwsLeft = 3;
-    startOfTurnScore[currentPlayer] = scores[currentPlayer]; // Neuen Startwert setzen
+    startOfTurnScore[currentPlayer] = scores[currentPlayer];
     
     multiplier = 1; 
     setMulti(1); 
@@ -216,7 +257,7 @@ function nextTurn() {
 
 function throwDart(num) {
     if(gameOver) return;
-    if(multiplier === 3 && num === 25) return; // Kein Triple Bull
+    if(multiplier === 3 && num === 25) return;
     
     if(navigator.vibrate) navigator.vibrate(30);
     
@@ -225,30 +266,30 @@ function throwDart(num) {
     const points = num * multiplier;
     let newScore = scores[currentPlayer] - points;
     
-    document.getElementById('lastThrowVal').textContent = `Letzter: ${points}`;
+    // Wurf speichern für Anzeige
+    currentThrows.push(formatThrow(multiplier, num));
 
     // REGELN
     if (newScore === 0) {
-        // GEWONNEN
+        // GEWONNEN (muss Double Out sein? Hier simplified Straight Out)
         scores[currentPlayer] = 0;
         checkWin();
-    } else if (newScore < 0) {
-        // BUST (Überworfen)
-        document.getElementById('lastThrowVal').textContent = "BUST!";
-        scores[currentPlayer] = startOfTurnScore[currentPlayer]; // Reset auf Anfang der Runde
-        throwsLeft = 1; // Erzwingt Rundenende beim nächsten Decrement
+    } else if (newScore < 0 || newScore === 1) { // 1 Rest ist bei Double Out auch Bust, hier erstmal < 0
+        // BUST
+        // Letzter Wurf wird überschrieben oder ergänzt? Wir lassen ihn stehen.
+        scores[currentPlayer] = startOfTurnScore[currentPlayer]; 
+        throwsLeft = 1; // Erzwingt Wechsel beim nächsten Step
+        
+        // Optional: Bust im Display anzeigen?
+        // currentThrows[currentThrows.length-1] += " (BUST)";
     } else {
-        // Gültiger Wurf
         scores[currentPlayer] = newScore;
     }
 
     throwsLeft--;
     
     if(throwsLeft === 0 && !gameOver) {
-        // Automatischer Wechsel oder manuell?
-        // Bei X01 ist es üblich, die Punkte anzusagen und dann zu wechseln.
-        // Wir wechseln hier direkt, weil wir die "Next Turn" Taste als "Skip/Verfehlt" nutzen können
-        setTimeout(nextTurn, 500); // Kurze Verzögerung für besseres Feeling
+        setTimeout(nextTurn, 600); 
     } else {
         multiplier = 1; setMulti(1);
         updateUI();
@@ -264,15 +305,12 @@ function checkWin() {
     document.getElementById('game-border').className = "winner-glow";
     confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
 
-    // --- TURNIER LOGIK ---
     if(isTournament) {
         localStorage.setItem('tournament_winner_name', winnerName);
         setTimeout(() => { window.location.href = 'tournament.html'; }, 3000);
         return;
     }
 
-    // Statistik speichern (Hier könnte man X01 separat zählen, wir packen es zu "Domination" oder machen eine neue Kategorie. 
-    // Der Einfachheit halber zähle ich es als Dart-Sieg wie Domination)
     let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
     if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0 };
     if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0 };
@@ -300,10 +338,21 @@ function updateUI() {
         if(!gameOver) border.className = "turn-p2";
     }
     
-    document.getElementById("throws").textContent = "Würfe: " + throwsLeft;
+    // UPDATE THROW DISPLAY
+    // Vorherige (Gegner)
+    for(let i=0; i<3; i++) {
+        document.getElementById(`prev${i+1}`).textContent = prevThrows[i] || "-";
+    }
+    // Aktuelle
+    for(let i=0; i<3; i++) {
+        let val = currentThrows[i];
+        let el = document.getElementById(`curr${i+1}`);
+        el.textContent = val || "-";
+        if(val) el.classList.remove("empty"); else el.classList.add("empty");
+    }
 }
 
-// --- BOARD DRAWING (Kopie von Domination, leicht angepasst ohne Hits-Logik) ---
+// --- BOARD DRAWING ---
 function drawBoard(){
     const svg = document.getElementById("dartboard");
     const defs = svg.querySelector("defs"); svg.innerHTML = ""; svg.appendChild(defs);
@@ -315,7 +364,6 @@ function drawBoard(){
         bg.setAttribute("d",`M0,0 L${x1},${y1} A${BOARD_R},${BOARD_R} 0 0,1 ${x2},${y2} Z`);
         bg.setAttribute("fill","#2a2a2a"); bg.setAttribute("stroke","#000"); svg.appendChild(bg);
         
-        // Text
         const lx = (BOARD_R + 35) * Math.cos((a1+a2)/2), ly = (BOARD_R + 35) * Math.sin((a1+a2)/2);
         const txt = document.createElementNS("http://www.w3.org/2000/svg","text");
         txt.setAttribute("x", lx); txt.setAttribute("y", ly);
@@ -323,13 +371,11 @@ function drawBoard(){
         txt.setAttribute("fill", "#666"); txt.setAttribute("font-weight", "bold");
         txt.textContent = n; svg.appendChild(txt);
 
-        // Klickfläche
         const click = document.createElementNS("http://www.w3.org/2000/svg","path");
         click.setAttribute("d",`M0,0 L${x1},${y1} A${BOARD_R},${BOARD_R} 0 0,1 ${x2},${y2} Z`);
         click.setAttribute("fill","transparent"); click.style.cursor="pointer";
         click.onclick = () => throwDart(n); svg.appendChild(click);
     });
-    // Bullseye
     const bBg = document.createElementNS("http://www.w3.org/2000/svg","circle");
     bBg.setAttribute("r", BULL_R); bBg.setAttribute("fill", "#2a2a2a"); bBg.setAttribute("stroke","#000"); svg.appendChild(bBg);
     const bClick = document.createElementNS("http://www.w3.org/2000/svg","circle");
