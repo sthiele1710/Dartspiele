@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -49,7 +50,7 @@
     <h3>1. Spiel wählen</h3>
     <select id="gameSelect">
         <option value="domination.html">🎯 Domination</option>
-        <option value="tictactoe.html">❌ Tic Tac Toe</option>
+        <option value="x01.html">💯 301 / 501</option> <option value="tictactoe.html">❌ Tic Tac Toe</option>
     </select>
 
     <h3>2. Modus</h3>
@@ -141,9 +142,8 @@
                 opt.value = n; opt.innerText = n + " Spieler";
                 sel.appendChild(opt);
             });
-        } else { // League (Jeder gegen Jeden)
+        } else { // League
             label.innerText = "3. Spieleranzahl";
-            // HIER WURDE DIE 7 HINZUGEFÜGT
             opts = [3, 4, 5, 6, 7, 8]; 
             opts.forEach(n => {
                 let opt = document.createElement('option');
