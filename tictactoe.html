@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -57,7 +58,10 @@
     }
 
     /* --- TEXTE & UI --- */
-    h1 { margin: 10px 0; color: gold; font-size: 24px; position: relative; z-index: 1; }
+    h1 { margin: 10px 0 5px 0; color: gold; font-size: 24px; position: relative; z-index: 1; }
+
+    /* NEU: Info für Serienstand */
+    #seriesInfo { font-size: 14px; color: #888; margin-bottom: 5px; font-weight: bold; position: relative; z-index: 2; }
 
     #status {
         margin: 10px auto; max-width: 420px;
@@ -123,8 +127,7 @@
 <div id="game-border"></div>
 
 <h1>🎯 Tic Tac Toe</h1>
-
-<div id="status">
+<div id="seriesInfo"></div> <div id="status">
     <span id="p1Label" class="player1">Spieler 1 (X)</span>
     <span id="p2Label" class="player2">Spieler 2 (O)</span>
 </div>
@@ -164,6 +167,14 @@ if (isTournament) {
     name2 = localStorage.getItem('tournament_p2') || "T-Spieler 2";
     // Home Button verstecken
     document.getElementById('homeBtn').style.display = 'none';
+    
+    // Serienstand anzeigen?
+    let s1 = urlParams.get('s1');
+    let s2 = urlParams.get('s2');
+    let target = urlParams.get('target');
+    if(s1 !== null) {
+        document.getElementById('seriesInfo').innerHTML = `Serie: <span style="color:#ff3b3b">${s1}</span> - <span style="color:#00bfff">${s2}</span> (First to ${target})`;
+    }
 } else {
     // Normale Namen
     name1 = localStorage.getItem('dart_p1') || "Spieler 1";
@@ -308,7 +319,7 @@ function checkWin() {
 
     if (winner) {
         gameOver = true;
-        // Text in das Winner-Div schreiben (wie bei Domination)
+        // Text in das Winner-Div schreiben
         document.getElementById("winner").textContent = `🏆 ${winner} GEWINNT!`;
         
         // Konfetti & Glow
