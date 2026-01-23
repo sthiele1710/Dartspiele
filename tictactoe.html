@@ -2,30 +2,35 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Dart Tic Tac Toe</title>
 
 <style>
 body {
-    font-family: sans-serif;
-    background: #f5f5f5;
+    font-family: system-ui, sans-serif;
+    background: #1a1a1a;
+    color: white;
     margin: 0;
     padding: 10px;
     text-align: center;
+    touch-action: manipulation; /* Verhindert Double-Tap Zoom native */
 }
 
-h1 { margin: 5px 0; }
+h1 { margin: 5px 0; color: gold; font-size: 24px; }
 
 #status {
     margin: 10px auto;
     max-width: 420px;
     display: flex;
     justify-content: space-between;
-    font-size: 18px;
+    font-size: 16px;
+    background: #333;
+    padding: 10px;
+    border-radius: 10px;
 }
 
-.player1 { color: red; font-weight: bold; }
-.player2 { color: blue; font-weight: bold; }
+.player1 { color: #ff3b3b; font-weight: bold; }
+.player2 { color: #00bfff; font-weight: bold; }
 
 #controls {
     margin: 10px auto;
@@ -35,21 +40,27 @@ h1 { margin: 5px 0; }
 #controls .row {
     display: flex;
     justify-content: center;
+    gap: 6px;
     margin-bottom: 6px;
 }
 
 #controls button {
     flex: 1;
-    padding: 15px;
-    font-size: 18px;
-    margin: 4px;
+    padding: 12px;
+    font-size: 16px;
     border: none;
     border-radius: 8px;
-    min-width: 80px;
+    background: #444;
+    color: white;
+    cursor: pointer;
+    user-select: none;
 }
+
+#controls button:active { transform: scale(0.98); }
 
 #controls button.active {
     background: gold;
+    color: black;
     font-weight: bold;
 }
 
@@ -62,39 +73,51 @@ h1 { margin: 5px 0; }
 }
 
 .cell {
-    background: white;
+    background: #e0e0e0;
+    color: black;
     border-radius: 6px;
-    min-height: 100px;
+    min-height: 90px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     cursor: pointer;
+    position: relative;
+    user-select: none;
 }
 
-.number { font-size: 24px; font-weight: bold; }
-.x_hits, .o_hits { color: #bbb; }
+.number { font-size: 22px; font-weight: bold; color: #333; }
+.x_hits { color: #ff3b3b; font-weight: bold; font-size: 14px; position: absolute; top: 5px; left: 0; width: 100%; }
+.o_hits { color: #00bfff; font-weight: bold; font-size: 14px; position: absolute; bottom: 5px; left: 0; width: 100%; }
 
 .complete {
-    font-size: 70px;
+    font-size: 60px;
     font-weight: bold;
+    line-height: 1;
 }
+.complete.x { color: #ff3b3b; }
+.complete.o { color: #00bfff; }
 
 .winner {
     background: #fff2a8;
+    border: 3px solid gold;
 }
 
 /* Zug beenden Button */
 #passBtn {
     padding: 15px;
     font-size: 18px;
-    margin-top: 10px;
+    margin-top: 5px;
     border-radius: 8px;
-    background-color: #ff6666;
+    background-color: #2e7d32;
     color: white;
     font-weight: bold;
     max-width: 420px;
     width: 100%;
+    border: none;
+    cursor: pointer;
 }
+#passBtn:active { background-color: #1b5e20; transform: scale(0.98); }
+
 </style>
 </head>
 
@@ -103,9 +126,10 @@ h1 { margin: 5px 0; }
 <h1>🎯 Dart Tic Tac Toe</h1>
 
 <div id="status">
-    <span id="player1" class="player1">Spieler 1 (X)</span>
-    <span id="player2" class="player2">Spieler 2 (O)</span>
+    <span id="p1Label" class="player1">Spieler 1 (X)</span>
+    <span id="p2Label" class="player2">Spieler 2 (O)</span>
 </div>
+<div id="throwsDisplay" style="margin-bottom: 10px; font-size: 18px; font-weight: bold;">Würfe: 3</div>
 
 <div id="controls">
     <div class="row">
@@ -114,17 +138,22 @@ h1 { margin: 5px 0; }
         <button id="tripleBtn" onclick="setMultiplier(3)">Triple</button>
     </div>
     <div class="row">
-        <button onclick="confirmReset(false)">Reset</button>
-        <button onclick="confirmReset(true)">Reset (25)</button>
-        <button onclick="undo()">↩️ Rückgängig</button>
+        <button onclick="confirmReset(false)">🔄 Neu</button>
+        <button onclick="confirmReset(true)">🔄 Neu (Bulls)</button>
+        <button onclick="undo()">↩️ Undo</button>
+        <button onclick="location.href='index.html'" style="background:#666;">🏠 Home</button>
     </div>
 </div>
 
 <div id="board"></div>
 
-<button id="passBtn" onclick="passTurn()">Zug beenden</button>
+<button id="passBtn" onclick="passTurn()">⏭️ Zug beenden / Verfehlt</button>
 
 <script>
+// Namen laden
+let name1 = localStorage.getItem('dart_p1') || "Spieler 1";
+let name2 = localStorage.getItem('dart_p2') || "Spieler 2";
+
 let fieldNumbers = [];
 let p1 = Array(9).fill(0);
 let p2 = Array(9).fill(0);
@@ -164,6 +193,7 @@ function resetGame(hard=false) {
     history = [];
     const nums = [...Array(20).keys()].map(i=>i+1).concat([25]);
     if (hard) {
+        // Bullseye in die Mitte (Index 4), Rest zufällig
         const others = nums.filter(n=>n!==25).sort(()=>Math.random()-0.5).slice(0,8);
         fieldNumbers = Array.from({length:9},(_,i)=>i===4?25:others.pop());
     } else {
@@ -176,27 +206,29 @@ function resetGame(hard=false) {
     multiplier = 1;
     gameOver = false;
     winningCombo = [];
+    setMultiplier(1);
     updateUI();
 }
 
 /* ---------- UI ---------- */
-function updateStatus() {
-    const statusDiv = document.getElementById("status");
-    statusDiv.innerHTML = `
-        <span class="${currentPlayer===1?'player1':''}">Spieler 1 (X)</span>
-        <span class="${currentPlayer===2?'player2':''}">Spieler 2 (O)</span>
-    `;
-    if(document.getElementById("throwsLeft")==null){
-        const span = document.createElement("div");
-        span.id="throwsLeft";
-        span.style.marginTop="6px";
-        span.style.fontSize="18px";
-        statusDiv.appendChild(span);
-    }
-    document.getElementById("throwsLeft").innerHTML = `Würfe übrig: <strong>${throwsLeft}</strong>`;
+function updateUI() {
+    // Status Bar
+    const p1Label = document.getElementById("p1Label");
+    const p2Label = document.getElementById("p2Label");
+    p1Label.textContent = `${name1} (X)`;
+    p2Label.textContent = `${name2} (O)`;
+    
+    // Opacity für aktiven Spieler
+    p1Label.style.opacity = currentPlayer === 1 ? "1" : "0.3";
+    p2Label.style.opacity = currentPlayer === 2 ? "1" : "0.3";
+
+    document.getElementById("throwsDisplay").textContent = `Würfe: ${throwsLeft}`;
+
+    renderBoard();
 }
 
 function setMultiplier(m) {
+    if(gameOver) return;
     multiplier = m;
     document.getElementById("singleBtn").classList.toggle("active", m===1);
     document.getElementById("doubleBtn").classList.toggle("active", m===2);
@@ -211,13 +243,20 @@ function renderBoard() {
         c.className = "cell";
         if (winningCombo.includes(i)) c.classList.add("winner");
 
-        if (p1[i]>=4) c.innerHTML = `<div class="complete">X</div>`;
-        else if (p2[i]>=4) c.innerHTML = `<div class="complete">O</div>`;
-        else c.innerHTML = `
-            <div class="x_hits">${"X".repeat(p1[i])}</div>
-            <div class="number">${fieldNumbers[i]}</div>
-            <div class="o_hits">${"O".repeat(p2[i])}</div>
-        `;
+        // Anzeige-Logik
+        // 4 Hits schließen das Feld
+        if (p1[i] >= 4) {
+            c.innerHTML = `<div class="complete x">X</div>`;
+        } else if (p2[i] >= 4) {
+            c.innerHTML = `<div class="complete o">O</div>`;
+        } else {
+            // Normale Anzeige: Hits oben und unten, Zahl in der Mitte
+            c.innerHTML = `
+                <div class="x_hits">${"X".repeat(p1[i])}</div>
+                <div class="number">${fieldNumbers[i]}</div>
+                <div class="o_hits">${"O".repeat(p2[i])}</div>
+            `;
+        }
 
         c.onclick = ()=>clickField(i);
         board.appendChild(c);
@@ -227,11 +266,20 @@ function renderBoard() {
 /* ---------- GAMEPLAY ---------- */
 function clickField(idx) {
     if (gameOver) return;
+    
+    // Feld gehört schon jemandem? Abbruch.
+    if (p1[idx] >= 4 || p2[idx] >= 4) return;
+    
+    // Bullseye darf nicht verdreifacht werden
     if (fieldNumbers[idx] === 25 && multiplier === 3) return;
 
     snapshot();
-    if (currentPlayer === 1) p1[idx] += multiplier;
-    else p2[idx] += multiplier;
+    
+    if (currentPlayer === 1) {
+        p1[idx] = Math.min(4, p1[idx] + multiplier); // Max 4 Hits
+    } else {
+        p2[idx] = Math.min(4, p2[idx] + multiplier); // Max 4 Hits
+    }
 
     throwsLeft--;
     endThrow();
@@ -241,11 +289,14 @@ function endThrow() {
     multiplier = 1;
     setMultiplier(1);
 
-    if (throwsLeft === 0) {
-        currentPlayer = currentPlayer === 1 ? 2 : 1;
-        throwsLeft = 3;
+    checkWin(); // Prüfen ob das Spiel vorbei ist BEVOR der Spieler wechselt
+
+    if (!gameOver) {
+        if (throwsLeft === 0) {
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            throwsLeft = 3;
+        }
     }
-    checkWin();
     updateUI();
 }
 
@@ -253,7 +304,7 @@ function endThrow() {
 function passTurn() {
     if (gameOver) return;
     snapshot();
-    throwsLeft = 0;
+    throwsLeft = 0; // Setzt Würfe auf 0 -> Triggered Spielerwechsel in endThrow
     endThrow();
 }
 
@@ -263,28 +314,36 @@ function checkWin() {
         [0,3,6],[1,4,7],[2,5,8],
         [0,4,8],[2,4,6]
     ];
+    
+    let winner = null;
+
     for (const w of wins) {
-        if (w.every(i=>p1[i]>=4)||w.every(i=>p2[i]>=4)) {
+        if (w.every(i => p1[i] >= 4)) {
             winningCombo = w;
-            gameOver = true;
+            winner = name1;
+        } else if (w.every(i => p2[i] >= 4)) {
+            winningCombo = w;
+            winner = name2;
         }
     }
-}
 
-function updateUI() {
-    updateStatus();
-    renderBoard();
-}
-
-/* ---------- STOP DOUBLE-TAP ZOOM ---------- */
-let lastTouch = 0;
-document.addEventListener('touchstart', function(e) {
-    const now = new Date().getTime();
-    if (now - lastTouch <= 300) { // Doppeltap innerhalb 300ms blockieren
-        e.preventDefault();
+    if (winner) {
+        gameOver = true;
+        document.getElementById("throwsDisplay").textContent = `🏆 ${winner} GEWINNT!`;
+        document.getElementById("throwsDisplay").style.color = "gold";
+        saveWin(winner);
     }
-    lastTouch = now;
-}, { passive: false });
+}
+
+function saveWin(winnerName) {
+    let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
+    if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0 };
+    if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0 };
+    
+    // Hier wird der Sieg als "TTT" gespeichert
+    stats[winnerName].ttt = (stats[winnerName].ttt || 0) + 1;
+    localStorage.setItem('allTimeStats', JSON.stringify(stats));
+}
 
 /* ---------- START ---------- */
 resetGame();
