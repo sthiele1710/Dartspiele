@@ -3,34 +3,66 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Dart Domination - Pro</title>
+<title>Domination</title>
 <link rel="manifest" href="manifest.json">
-
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WG Darts">
 <link rel="apple-touch-icon" href="icon.png">
-
 <link rel="icon" type="image/png" href="icon.png">
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
 <style>
     body { 
-        margin:0; font-family: system-ui, sans-serif; background:#1a1a1a; color:white; text-align:center; overflow-x: hidden;
+        margin:0; 
+        font-family: system-ui, sans-serif; 
+        background:#1a1a1a; 
+        color:white; 
+        text-align:center; 
+        overflow-x: hidden;
         touch-action: manipulation; 
+        
+        /* NEU: Für den leuchtenden Rahmen */
+        min-height: 100vh;
+        box-sizing: border-box;
+        border: 2px solid transparent; /* Platzhalter */
+        transition: box-shadow 0.8s ease-in-out, border-color 0.8s ease-in-out;
     }
+
+    /* NEU: Glow Effekte */
+    body.turn-p1 {
+        box-shadow: inset 0 0 40px rgba(255, 59, 59, 0.25);
+        border-color: rgba(255, 59, 59, 0.3);
+    }
+    body.turn-p2 {
+        box-shadow: inset 0 0 40px rgba(0, 191, 255, 0.25);
+        border-color: rgba(0, 191, 255, 0.3);
+    }
+    body.winner-glow {
+        box-shadow: inset 0 0 60px rgba(255, 215, 0, 0.4);
+        border-color: gold;
+    }
+
     h1 {margin:10px 0; font-size:24px; color: gold;}
     #top { display:flex; justify-content:space-between; padding:0 15px; font-size:18px; max-width:440px; margin:auto; }
     .p1 { color:#ff3b3b; font-weight:bold; }
     .p2 { color:#00bfff; font-weight:bold; }
     #throws { font-size:18px; margin:8px 0; background: #333; display: inline-block; padding: 4px 15px; border-radius: 20px;}
+    
     #controls { max-width:440px; margin:auto; padding: 0 10px; }
     .btn-row { display:flex; justify-content:center; gap:6px; margin-bottom:8px; }
+    
     button { padding:12px; font-size:14px; border-radius:6px; border:none; cursor:pointer; flex:1; background: #444; color: white; transition: 0.2s; user-select: none; }
     button.active { background: gold; color: black; font-weight:bold; transform: scale(1.05);}
     button.func { background: #555; }
+    
     #next-turn-container { max-width:440px; margin: 10px auto; padding: 0 10px; }
     button.next-turn { background: #2e7d32; color: white; width: 100%; font-weight: bold; font-size: 16px; border: 1px solid #4caf50; }
+    
     #dartboard { width:100vw; max-width:480px; height:auto; display:block; margin:auto; touch-action: none; }
     #winner { font-size:28px; margin:15px 0; font-weight:bold; color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5);}
+    
     .numberLabel { font-weight:bold; pointer-events:none; fill: #666; font-size: 13px; }
     .owned-1 { fill: #ff3b3b !important; font-size: 20px; filter: drop-shadow(0px 0px 3px black); }
     .owned-2 { fill: #00bfff !important; font-size: 20px; filter: drop-shadow(0px 0px 3px black); }
@@ -40,7 +72,7 @@
 </head>
 <body>
 
-<h1>🎯 Dart Domination</h1>
+<h1>🎯 Domination</h1>
 <div id="top">
   <span id="s1" class="p1">Spieler 1: 0</span>
   <span id="s2" class="p2">Spieler 2: 0</span>
@@ -130,6 +162,10 @@ function setMulti(m){
 function throwDart(num){
     if(gameOver) return;
     if(multiplier===3 && num===25) return; 
+    
+    // NEU: Haptisches Feedback (Vibration)
+    if(navigator.vibrate) navigator.vibrate(30);
+
     snapshot();
     hits[num][currentPlayer] += multiplier;
     updateOwner(num);
@@ -156,9 +192,15 @@ function checkWin(){
         document.getElementById("winner").textContent = `🏆 ${winnerName} GEWINNT!`;
         gameOver = true;
 
+        // NEU: Goldener Glow & Konfetti
+        document.body.className = "winner-glow";
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+
         // Sieg global speichern
         let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
-        stats[winnerName] = (stats[winnerName] || 0) + 1;
+        if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0 };
+        if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0 };
+        stats[winnerName].dart = (stats[winnerName].dart || 0) + 1;
         localStorage.setItem('allTimeStats', JSON.stringify(stats));
     }
 }
@@ -168,9 +210,15 @@ function updateUI(){
     const p2Count = Object.values(owner).filter(o => o === 2).length;
     document.getElementById("s1").textContent = `${name1}: ${p1Count}`;
     document.getElementById("s2").textContent = `${name2}: ${p2Count}`;
+    // Opacity brauchen wir nicht mehr zwingend durch den Glow, aber schadet nicht
     document.getElementById("s1").style.opacity = currentPlayer === 1 ? "1" : "0.3";
     document.getElementById("s2").style.opacity = currentPlayer === 2 ? "1" : "0.3";
     document.getElementById("throws").textContent = "Würfe: " + throwsLeft;
+
+    // NEU: Glow Effekt Update
+    if(!gameOver) {
+        document.body.className = (currentPlayer === 1) ? "turn-p1" : "turn-p2";
+    }
 }
 
 function drawBadge(svg, x, y, val, color) {
@@ -315,6 +363,19 @@ function resetGame(){
     history = []; document.getElementById("winner").textContent = ""; 
     setMulti(1); updateUI(); drawBoard();
 }
+
+// NEU: Screen Wake Lock Funktion
+async function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    try {
+      await navigator.wakeLock.request('screen');
+    } catch (err) {
+      console.log('Wake Lock Error:', err);
+    }
+  }
+}
+// Aktiviert sich beim ersten Klick
+document.addEventListener('click', requestWakeLock, { once: true });
 
 initData();
 updateUI();
