@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Dart Tic Tac Toe</title>
 <link rel="manifest" href="manifest.json">
+
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WG Darts">
@@ -14,106 +15,138 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <style>
-body {
-    font-family: system-ui, sans-serif;
-    background: #1a1a1a;
-    color: white;
-    margin: 0;
-    padding: 10px;
-    text-align: center;
-    touch-action: manipulation;
-    padding-bottom: 20px;
-}
+    body {
+        font-family: system-ui, sans-serif;
+        background: #1a1a1a;
+        color: white;
+        margin: 0;
+        padding: 10px;
+        text-align: center;
+        touch-action: manipulation;
+        padding-bottom: 20px;
+        /* Wichtig für den Rand: */
+        box-sizing: border-box;
+        min-height: 100vh;
+    }
 
-/* FIXIERTER RAHMEN (Overlay) */
-#game-border {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none; /* Lässt Klicks durch */
-    z-index: 9999; /* Immer ganz oben */
-    box-sizing: border-box;
-    border: 0px solid transparent;
-    transition: box-shadow 0.8s ease-in-out, border-color 0.8s ease-in-out;
-}
+    /* FIXIERTER GLOW RAHMEN (Overlay) */
+    #game-border {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none; /* WICHTIG: Lässt Klicks durch zu den Buttons! */
+        z-index: 9999; /* Liegt optisch über allem */
+        box-sizing: border-box;
+        border: 0px solid transparent;
+        transition: box-shadow 0.8s ease-in-out, border-color 0.8s ease-in-out;
+    }
 
-/* Die Klassen für den Rahmen */
-#game-border.turn-p1 {
-    box-shadow: inset 0 0 40px rgba(255, 59, 59, 0.5);
-    border: 2px solid rgba(255, 59, 59, 0.3);
-}
-#game-border.turn-p2 {
-    box-shadow: inset 0 0 40px rgba(0, 191, 255, 0.5);
-    border: 2px solid rgba(0, 191, 255, 0.3);
-}
-#game-border.winner-glow {
-    box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.8);
-    border: 5px solid gold;
-}
+    /* Die Klassen für den Rahmen */
+    #game-border.turn-p1 {
+        box-shadow: inset 0 0 50px rgba(255, 59, 59, 0.4);
+        border: 4px solid rgba(255, 59, 59, 0.3);
+    }
+    #game-border.turn-p2 {
+        box-shadow: inset 0 0 50px rgba(0, 191, 255, 0.4);
+        border: 4px solid rgba(0, 191, 255, 0.3);
+    }
+    #game-border.winner-glow {
+        box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.8);
+        border: 6px solid gold;
+    }
 
-h1 { margin: 15px 0 5px 0; color: gold; font-size: 24px; position: relative; z-index: 1; }
+    h1 { margin: 5px 0; color: gold; font-size: 24px; position: relative; z-index: 1;}
 
-#status {
-    margin: 10px auto;
-    max-width: 420px;
-    display: flex;
-    justify-content: space-between;
-    font-size: 16px;
-    background: #333;
-    padding: 10px;
-    border-radius: 10px;
-    position: relative; z-index: 2;
-}
+    #status {
+        margin: 10px auto;
+        max-width: 420px;
+        display: flex;
+        justify-content: space-between;
+        font-size: 16px;
+        background: #333;
+        padding: 10px;
+        border-radius: 10px;
+        position: relative; z-index: 1;
+    }
 
-.player1 { color: #ff3b3b; font-weight: bold; }
-.player2 { color: #00bfff; font-weight: bold; }
+    .player1 { color: #ff3b3b; font-weight: bold; }
+    .player2 { color: #00bfff; font-weight: bold; }
 
-#controls { margin: 10px auto; max-width: 420px; position: relative; z-index: 2; }
-#controls .row { display: flex; justify-content: center; gap: 6px; margin-bottom: 6px; }
-#controls button { flex: 1; padding: 12px; font-size: 16px; border: none; border-radius: 8px; background: #444; color: white; cursor: pointer; user-select: none; }
-#controls button:active { transform: scale(0.98); }
-#controls button.active { background: gold; color: black; font-weight: bold; }
+    #controls {
+        margin: 10px auto;
+        max-width: 420px;
+        position: relative; z-index: 1;
+    }
 
-#board {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    max-width: 420px;
-    margin: 10px auto;
-    position: relative; z-index: 2;
-}
+    #controls .row {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        margin-bottom: 6px;
+    }
 
-.cell {
-    background: #e0e0e0;
-    color: black;
-    border-radius: 6px;
-    min-height: 90px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    cursor: pointer;
-    position: relative;
-    user-select: none;
-}
+    #controls button {
+        flex: 1;
+        padding: 12px;
+        font-size: 16px;
+        border: none;
+        border-radius: 8px;
+        background: #444;
+        color: white;
+        cursor: pointer;
+        user-select: none;
+    }
 
-.number { font-size: 22px; font-weight: bold; color: #333; }
-.x_hits { color: #ff3b3b; font-weight: bold; font-size: 14px; position: absolute; top: 5px; left: 0; width: 100%; }
-.o_hits { color: #00bfff; font-weight: bold; font-size: 14px; position: absolute; bottom: 5px; left: 0; width: 100%; }
+    #controls button:active { transform: scale(0.98); }
 
-.complete { font-size: 60px; font-weight: bold; line-height: 1; }
-.complete.x { color: #ff3b3b; }
-.complete.o { color: #00bfff; }
-.winner { background: #fff2a8; border: 3px solid gold; }
+    #controls button.active {
+        background: gold;
+        color: black;
+        font-weight: bold;
+    }
 
-#passBtn {
-    padding: 15px; font-size: 18px; margin-top: 5px; border-radius: 8px;
-    background-color: #2e7d32; color: white; font-weight: bold;
-    max-width: 420px; width: 100%; border: none; cursor: pointer;
-    position: relative; z-index: 2;
-}
-#passBtn:active { background-color: #1b5e20; transform: scale(0.98); }
+    #board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        max-width: 420px;
+        margin: 10px auto;
+        position: relative; z-index: 1;
+    }
+
+    .cell {
+        background: #e0e0e0;
+        color: black;
+        border-radius: 6px;
+        min-height: 90px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+        user-select: none;
+    }
+
+    .number { font-size: 22px; font-weight: bold; color: #333; }
+    .x_hits { color: #ff3b3b; font-weight: bold; font-size: 14px; position: absolute; top: 5px; left: 0; width: 100%; }
+    .o_hits { color: #00bfff; font-weight: bold; font-size: 14px; position: absolute; bottom: 5px; left: 0; width: 100%; }
+
+    .complete { font-size: 60px; font-weight: bold; line-height: 1; }
+    .complete.x { color: #ff3b3b; }
+    .complete.o { color: #00bfff; }
+
+    .winner { background: #fff2a8; border: 3px solid gold; }
+
+    /* Zug beenden Button */
+    #passBtn {
+        padding: 15px; font-size: 18px; margin-top: 5px; border-radius: 8px;
+        background-color: #2e7d32; color: white; font-weight: bold;
+        max-width: 420px; width: 100%; border: none; cursor: pointer;
+        position: relative; z-index: 1;
+    }
+    #passBtn:active { background-color: #1b5e20; transform: scale(0.98); }
 
 </style>
 </head>
@@ -128,7 +161,7 @@ h1 { margin: 15px 0 5px 0; color: gold; font-size: 24px; position: relative; z-i
     <span id="p1Label" class="player1">Spieler 1 (X)</span>
     <span id="p2Label" class="player2">Spieler 2 (O)</span>
 </div>
-<div id="throwsDisplay" style="margin-bottom: 10px; font-size: 18px; font-weight: bold; position: relative; z-index: 2;">Würfe: 3</div>
+<div id="throwsDisplay" style="margin-bottom: 10px; font-size: 18px; font-weight: bold; position: relative; z-index: 1;">Würfe: 3</div>
 
 <div id="controls">
     <div class="row">
@@ -173,9 +206,13 @@ function snapshot() {
 function undo() {
     if (!history.length) return;
     const s = history.pop();
-    p1 = s.p1; p2 = s.p2; currentPlayer = s.currentPlayer;
-    throwsLeft = s.throwsLeft; multiplier = s.multiplier;
-    gameOver = s.gameOver; winningCombo = s.winningCombo;
+    p1 = s.p1;
+    p2 = s.p2;
+    currentPlayer = s.currentPlayer;
+    throwsLeft = s.throwsLeft;
+    multiplier = s.multiplier;
+    gameOver = s.gameOver;
+    winningCombo = s.winningCombo;
     updateUI();
 }
 
@@ -188,6 +225,7 @@ function resetGame(hard=false) {
     history = [];
     const nums = [...Array(20).keys()].map(i=>i+1).concat([25]);
     if (hard) {
+        // Bullseye in die Mitte (Index 4), Rest zufällig
         const others = nums.filter(n=>n!==25).sort(()=>Math.random()-0.5).slice(0,8);
         fieldNumbers = Array.from({length:9},(_,i)=>i===4?25:others.pop());
     } else {
@@ -202,27 +240,30 @@ function resetGame(hard=false) {
     winningCombo = [];
     setMultiplier(1);
     
-    // UI zurücksetzen (Hier war der Fehler vorher!)
+    // UI aktualisieren (auch Status Reset)
     updateUI();
 }
 
 /* ---------- UI ---------- */
 function updateUI() {
-    // Labels aktualisieren
+    // Status Bar
     const p1Label = document.getElementById("p1Label");
     const p2Label = document.getElementById("p2Label");
     p1Label.textContent = `${name1} (X)`;
     p2Label.textContent = `${name2} (O)`;
+    
+    // Opacity für aktiven Spieler
     p1Label.style.opacity = currentPlayer === 1 ? "1" : "0.3";
     p2Label.style.opacity = currentPlayer === 2 ? "1" : "0.3";
 
     const tDisplay = document.getElementById("throwsDisplay");
     tDisplay.textContent = `Würfe: ${throwsLeft}`;
-    tDisplay.style.color = "white"; // Farbe zurücksetzen falls Gold vom Sieg
+    tDisplay.style.color = "white"; // Reset Farbe (falls vorher Gold)
 
-    // RAHMEN AKTUALISIEREN
+    // RAHMEN AKTUALISIEREN (GLOW)
+    const border = document.getElementById("game-border");
     if(!gameOver) {
-        document.getElementById('game-border').className = (currentPlayer === 1) ? "turn-p1" : "turn-p2";
+        border.className = (currentPlayer === 1) ? "turn-p1" : "turn-p2";
     }
 
     renderBoard();
@@ -244,17 +285,21 @@ function renderBoard() {
         c.className = "cell";
         if (winningCombo.includes(i)) c.classList.add("winner");
 
+        // Anzeige-Logik
+        // 4 Hits schließen das Feld
         if (p1[i] >= 4) {
             c.innerHTML = `<div class="complete x">X</div>`;
         } else if (p2[i] >= 4) {
             c.innerHTML = `<div class="complete o">O</div>`;
         } else {
+            // Normale Anzeige: Hits oben und unten, Zahl in der Mitte
             c.innerHTML = `
                 <div class="x_hits">${"X".repeat(p1[i])}</div>
                 <div class="number">${fieldNumbers[i]}</div>
                 <div class="o_hits">${"O".repeat(p2[i])}</div>
             `;
         }
+
         c.onclick = ()=>clickField(i);
         board.appendChild(c);
     }
@@ -263,17 +308,22 @@ function renderBoard() {
 /* ---------- GAMEPLAY ---------- */
 function clickField(idx) {
     if (gameOver) return;
+    
+    // Feld gehört schon jemandem? Abbruch.
     if (p1[idx] >= 4 || p2[idx] >= 4) return;
+    
+    // Bullseye darf nicht verdreifacht werden
     if (fieldNumbers[idx] === 25 && multiplier === 3) return;
 
-    if(navigator.vibrate) navigator.vibrate(30); // Vibration
+    // Vibration (Feature)
+    if(navigator.vibrate) navigator.vibrate(30);
 
     snapshot();
     
     if (currentPlayer === 1) {
-        p1[idx] = Math.min(4, p1[idx] + multiplier); 
+        p1[idx] = Math.min(4, p1[idx] + multiplier); // Max 4 Hits
     } else {
-        p2[idx] = Math.min(4, p2[idx] + multiplier);
+        p2[idx] = Math.min(4, p2[idx] + multiplier); // Max 4 Hits
     }
 
     throwsLeft--;
@@ -283,7 +333,9 @@ function clickField(idx) {
 function endThrow() {
     multiplier = 1;
     setMultiplier(1);
-    checkWin(); 
+
+    checkWin(); // Prüfen ob das Spiel vorbei ist BEVOR der Spieler wechselt
+
     if (!gameOver) {
         if (throwsLeft === 0) {
             currentPlayer = currentPlayer === 1 ? 2 : 1;
@@ -293,34 +345,45 @@ function endThrow() {
     updateUI();
 }
 
+/* ---------- PASS TURN ---------- */
 function passTurn() {
     if (gameOver) return;
     snapshot();
-    throwsLeft = 0;
+    throwsLeft = 0; // Setzt Würfe auf 0 -> Triggered Spielerwechsel in endThrow
     endThrow();
 }
 
 function checkWin() {
-    const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    const wins = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+    ];
+    
     let winner = null;
 
     for (const w of wins) {
         if (w.every(i => p1[i] >= 4)) {
-            winningCombo = w; winner = name1;
+            winningCombo = w;
+            winner = name1;
         } else if (w.every(i => p2[i] >= 4)) {
-            winningCombo = w; winner = name2;
+            winningCombo = w;
+            winner = name2;
         }
     }
 
     if (winner) {
         gameOver = true;
+        
+        // Anzeige aktualisieren
         const tDisplay = document.getElementById("throwsDisplay");
         tDisplay.textContent = `🏆 ${winner} GEWINNT!`;
         tDisplay.style.color = "gold";
         
-        // RAHMEN: Winner Glow
-        document.getElementById('game-border').className = "winner-glow";
-        // KONFETTI
+        // RAHMEN AUF GOLD SETZEN
+        document.getElementById("game-border").className = "winner-glow";
+        
+        // KONFETTI STARTEN
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
 
         saveWin(winner);
@@ -331,11 +394,13 @@ function saveWin(winnerName) {
     let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
     if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0 };
     if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0 };
+    
+    // Hier wird der Sieg als "TTT" gespeichert
     stats[winnerName].ttt = (stats[winnerName].ttt || 0) + 1;
     localStorage.setItem('allTimeStats', JSON.stringify(stats));
 }
 
-/* ---------- WAKE LOCK ---------- */
+// WAKELOCK (Bildschirm anlassen)
 async function requestWakeLock() {
   if ('wakeLock' in navigator) {
     try { await navigator.wakeLock.request('screen'); } catch (err) { console.log(err); }
