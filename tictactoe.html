@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -5,13 +6,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Dart Tic Tac Toe</title>
 <link rel="manifest" href="manifest.json">
-
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WG Darts">
 <link rel="apple-touch-icon" href="icon.png">
-
 <link rel="icon" type="image/png" href="icon.png">
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
 <style>
 body {
     font-family: system-ui, sans-serif;
@@ -20,10 +22,39 @@ body {
     margin: 0;
     padding: 10px;
     text-align: center;
-    touch-action: manipulation; /* Verhindert Double-Tap Zoom native */
+    touch-action: manipulation;
+    padding-bottom: 20px;
 }
 
-h1 { margin: 5px 0; color: gold; font-size: 24px; }
+/* NEU: Das Overlay für den Rand - Liegt FEST über dem Bildschirm */
+#game-border {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Wichtig: Lässt Klicks durch! */
+    z-index: 9999;
+    box-sizing: border-box;
+    border: 0px solid transparent;
+    transition: box-shadow 0.8s ease-in-out, border-color 0.8s ease-in-out;
+}
+
+/* Die Klassen für das Overlay */
+#game-border.turn-p1 {
+    box-shadow: inset 0 0 50px rgba(255, 59, 59, 0.4);
+    border: 4px solid rgba(255, 59, 59, 0.5);
+}
+#game-border.turn-p2 {
+    box-shadow: inset 0 0 50px rgba(0, 191, 255, 0.4);
+    border: 4px solid rgba(0, 191, 255, 0.5);
+}
+#game-border.winner-glow {
+    box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.6);
+    border: 6px solid gold;
+}
+
+h1 { margin: 15px 0 5px 0; color: gold; font-size: 24px; }
 
 #status {
     margin: 10px auto;
@@ -130,6 +161,8 @@ h1 { margin: 5px 0; color: gold; font-size: 24px; }
 
 <body>
 
+<div id="game-border"></div>
+
 <h1>🎯 Dart Tic Tac Toe</h1>
 
 <div id="status">
@@ -214,6 +247,9 @@ function resetGame(hard=false) {
     gameOver = false;
     winningCombo = [];
     setMultiplier(1);
+    
+    // Reset UI Glow
+    document.getElementById("winner").textContent = ""; // Falls vorhanden
     updateUI();
 }
 
@@ -230,6 +266,11 @@ function updateUI() {
     p2Label.style.opacity = currentPlayer === 2 ? "1" : "0.3";
 
     document.getElementById("throwsDisplay").textContent = `Würfe: ${throwsLeft}`;
+
+    // NEU: Glow Update für Overlay
+    if(!gameOver) {
+        document.getElementById('game-border').className = (currentPlayer === 1) ? "turn-p1" : "turn-p2";
+    }
 
     renderBoard();
 }
@@ -279,6 +320,9 @@ function clickField(idx) {
     
     // Bullseye darf nicht verdreifacht werden
     if (fieldNumbers[idx] === 25 && multiplier === 3) return;
+
+    // NEU: Vibration
+    if(navigator.vibrate) navigator.vibrate(30);
 
     snapshot();
     
@@ -338,6 +382,11 @@ function checkWin() {
         gameOver = true;
         document.getElementById("throwsDisplay").textContent = `🏆 ${winner} GEWINNT!`;
         document.getElementById("throwsDisplay").style.color = "gold";
+        
+        // NEU: Winner Glow und Konfetti
+        document.getElementById('game-border').className = "winner-glow";
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+
         saveWin(winner);
     }
 }
@@ -351,6 +400,16 @@ function saveWin(winnerName) {
     stats[winnerName].ttt = (stats[winnerName].ttt || 0) + 1;
     localStorage.setItem('allTimeStats', JSON.stringify(stats));
 }
+
+/* ---------- WAKE LOCK ---------- */
+async function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    try {
+      await navigator.wakeLock.request('screen');
+    } catch (err) { console.log(err); }
+  }
+}
+document.addEventListener('click', requestWakeLock, { once: true });
 
 /* ---------- START ---------- */
 resetGame();
