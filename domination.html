@@ -25,7 +25,6 @@
         padding-bottom: 20px; 
     }
 
-    /* Overlay für den Rand */
     #game-border {
         position: fixed;
         top: 0;
@@ -54,7 +53,9 @@
 
     h1 {margin:15px 0 5px 0; font-size:24px; color: gold;}
     
-    #seriesInfo { font-size: 14px; color: #888; margin-bottom: 10px; font-weight: bold; }
+    #seriesInfo { font-size: 14px; color: #888; margin-bottom: 5px; font-weight: bold; }
+    /* NEU: Rundenanzeige */
+    #roundDisplay { font-size: 16px; color: #aaa; margin-bottom: 10px; font-weight: bold; }
 
     #top { display:flex; justify-content:space-between; padding:0 15px; font-size:18px; max-width:440px; margin:auto; }
     .p1 { color:#ff3b3b; font-weight:bold; }
@@ -86,9 +87,8 @@
 <div id="game-border"></div>
 
 <h1>🎯 Domination</h1>
-<div id="seriesInfo"></div> 
-
-<div id="top">
+<div id="seriesInfo"></div>
+<div id="roundDisplay">Runde: 1</div> <div id="top">
   <span id="s1" class="p1">Spieler 1: 0</span>
   <span id="s2" class="p2">Spieler 2: 0</span>
 </div>
@@ -123,9 +123,13 @@
 </div>
 
 <script>
-// --- TURNIER LOGIK START ---
+// --- TURNIER & START LOGIK ---
 const urlParams = new URLSearchParams(window.location.search);
 const isTournament = urlParams.get('tournament') === 'true';
+
+// Startspieler auslesen (Standard: 1)
+const startParam = urlParams.get('starter');
+const initialPlayer = startParam ? parseInt(startParam) : 1;
 
 let name1, name2;
 
@@ -145,7 +149,6 @@ if (isTournament) {
     name1 = localStorage.getItem('dart_p1') || "Spieler 1";
     name2 = localStorage.getItem('dart_p2') || "Spieler 2";
 }
-// --- TURNIER LOGIK ENDE ---
 
 const order=[20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
 const ROTATION_OFFSET = -9;
@@ -153,7 +156,9 @@ const BOARD_R = 180;
 const BULL_R = 38;
 
 let hits={}, owner={}, history=[];
-let currentPlayer=1, throwsLeft=3, multiplier=1, gameOver=false;
+let currentPlayer = initialPlayer; // HIER: Startspieler setzen
+let currentRound = 1;
+let throwsLeft=3, multiplier=1, gameOver=false;
 
 function initData(){
     hits={}; owner={}; 
@@ -164,13 +169,22 @@ function initData(){
 }
 
 function snapshot(){
-    history.push(JSON.stringify({hits, owner, currentPlayer, throwsLeft, multiplier, gameOver}));
+    history.push(JSON.stringify({hits, owner, currentPlayer, throwsLeft, multiplier, gameOver, currentRound}));
 }
 
 function nextTurn() {
     if(gameOver) return;
     snapshot();
-    currentPlayer = currentPlayer === 1 ? 2 : 1;
+    
+    // Spieler wechseln
+    let nextP = currentPlayer === 1 ? 2 : 1;
+    // Wenn wir wieder beim Startspieler landen, Runde erhöhen
+    if (nextP === initialPlayer) {
+        currentRound++;
+        document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
+    }
+    currentPlayer = nextP;
+    
     throwsLeft = 3;
     multiplier = 1;
     setMulti(1);
@@ -183,6 +197,8 @@ function undo(){
     const s = JSON.parse(history.pop());
     hits=s.hits; owner=s.owner; currentPlayer=s.currentPlayer;
     throwsLeft=s.throwsLeft; multiplier=s.multiplier; gameOver=s.gameOver;
+    currentRound = s.currentRound || 1;
+    document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
     updateUI(); drawBoard();
 }
 
@@ -204,7 +220,17 @@ function throwDart(num){
     hits[num][currentPlayer] += multiplier;
     updateOwner(num);
     throwsLeft--;
-    if(throwsLeft === 0){ currentPlayer = currentPlayer === 1 ? 2 : 1; throwsLeft = 3; }
+    
+    if(throwsLeft === 0){ 
+        // Spielerwechsel und Runden-Check
+        let nextP = currentPlayer === 1 ? 2 : 1;
+        if (nextP === initialPlayer) {
+            currentRound++;
+            document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
+        }
+        currentPlayer = nextP;
+        throwsLeft = 3; 
+    }
     multiplier = 1; setMulti(1);
     updateUI(); drawBoard();
     checkWin();
@@ -229,6 +255,8 @@ function checkWin(){
         document.getElementById('game-border').className = "winner-glow";
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
 
+        saveWin(winnerName);
+
         if(isTournament) {
             localStorage.setItem('tournament_winner_name', winnerName);
             setTimeout(() => {
@@ -236,13 +264,15 @@ function checkWin(){
             }, 3000);
             return;
         }
-
-        let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
-        if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0 };
-        if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0 };
-        stats[winnerName].dart = (stats[winnerName].dart || 0) + 1;
-        localStorage.setItem('allTimeStats', JSON.stringify(stats));
     }
+}
+
+function saveWin(winnerName) {
+    let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
+    if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0, x01: 0 };
+    if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0, x01: 0 };
+    stats[winnerName].dart = (stats[winnerName].dart || 0) + 1;
+    localStorage.setItem('allTimeStats', JSON.stringify(stats));
 }
 
 function updateUI(){
@@ -375,7 +405,13 @@ function confirmReset() {
 }
 
 function resetGame(){
-    initData(); currentPlayer = 1; throwsLeft = 3; multiplier = 1; gameOver = false;
+    initData(); 
+    // Startspieler wiederherstellen beim Reset
+    currentPlayer = initialPlayer;
+    currentRound = 1;
+    document.getElementById('roundDisplay').textContent = "Runde: 1";
+    
+    throwsLeft = 3; multiplier = 1; gameOver = false;
     history = []; document.getElementById("winner").textContent = ""; 
     setMulti(1); updateUI(); drawBoard();
 }
