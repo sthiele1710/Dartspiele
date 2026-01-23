@@ -141,9 +141,10 @@
                 opt.value = n; opt.innerText = n + " Spieler";
                 sel.appendChild(opt);
             });
-        } else { // League
+        } else { // League (Jeder gegen Jeden)
             label.innerText = "3. Spieleranzahl";
-            opts = [3, 4, 5, 6, 8]; // Keine 2 Spieler!
+            // HIER WURDE DIE 7 HINZUGEFÜGT
+            opts = [3, 4, 5, 6, 7, 8]; 
             opts.forEach(n => {
                 let opt = document.createElement('option');
                 opt.value = n; opt.innerText = n + " Spieler";
@@ -300,7 +301,6 @@
             tournament.currentMatchIndex = {r: idx1, m: idx2};
         } else if(type === 'bestof') {
             p1 = tournament.players[0]; p2 = tournament.players[1];
-            // Übergebe Serienstand
             let target = Math.ceil(tournament.boTotal / 2);
             queryParams = `&s1=${tournament.boScores[0]}&s2=${tournament.boScores[1]}&target=${target}`;
         }
