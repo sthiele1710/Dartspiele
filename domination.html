@@ -3,15 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Dart Domination - Secure Reset</title>
+<title>Dart Domination - Pro</title>
 <style>
     body { 
-        margin:0; 
-        font-family: system-ui, sans-serif; 
-        background:#1a1a1a; 
-        color:white; 
-        text-align:center; 
-        overflow-x: hidden;
+        margin:0; font-family: system-ui, sans-serif; background:#1a1a1a; color:white; text-align:center; overflow-x: hidden;
         touch-action: manipulation; 
     }
     h1 {margin:10px 0; font-size:24px; color: gold;}
@@ -19,37 +14,14 @@
     .p1 { color:#ff3b3b; font-weight:bold; }
     .p2 { color:#00bfff; font-weight:bold; }
     #throws { font-size:18px; margin:8px 0; background: #333; display: inline-block; padding: 4px 15px; border-radius: 20px;}
-    
     #controls { max-width:440px; margin:auto; padding: 0 10px; }
     .btn-row { display:flex; justify-content:center; gap:6px; margin-bottom:8px; }
-    
-    button { 
-        padding:12px; 
-        font-size:14px; 
-        border-radius:6px; 
-        border:none; 
-        cursor:pointer; 
-        flex:1; 
-        background: #444; 
-        color: white; 
-        transition: 0.2s;
-        user-select: none; 
-    }
+    button { padding:12px; font-size:14px; border-radius:6px; border:none; cursor:pointer; flex:1; background: #444; color: white; transition: 0.2s; user-select: none; }
     button.active { background: gold; color: black; font-weight:bold; transform: scale(1.05);}
     button.func { background: #555; }
-    
-    #next-turn-container { max-width:440px; margin: 15px auto; padding: 0 10px; }
+    #next-turn-container { max-width:440px; margin: 10px auto; padding: 0 10px; }
     button.next-turn { background: #2e7d32; color: white; width: 100%; font-weight: bold; font-size: 16px; border: 1px solid #4caf50; }
-    button.next-turn:active { background: #1b5e20; }
-
-    #dartboard { 
-        width:100vw; 
-        max-width:480px; 
-        height:auto; 
-        display:block; 
-        margin:auto; 
-        touch-action: none;
-    }
+    #dartboard { width:100vw; max-width:480px; height:auto; display:block; margin:auto; touch-action: none; }
     #winner { font-size:28px; margin:15px 0; font-weight:bold; color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5);}
     .numberLabel { font-weight:bold; pointer-events:none; fill: #666; font-size: 13px; }
     .owned-1 { fill: #ff3b3b !important; font-size: 20px; filter: drop-shadow(0px 0px 3px black); }
@@ -76,6 +48,7 @@
   <div class="btn-row">
     <button class="func" onclick="undo()">↩️ Undo</button>
     <button class="func" onclick="confirmReset()">🔄 Reset</button>
+    <button class="func" onclick="location.href='index.html'">🏠 Home</button>
   </div>
 </div>
 
@@ -95,6 +68,10 @@
 </div>
 
 <script>
+// Namen laden
+let name1 = localStorage.getItem('dart_p1') || "Spieler 1";
+let name2 = localStorage.getItem('dart_p2') || "Spieler 2";
+
 const order=[20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
 const ROTATION_OFFSET = -9;
 const BOARD_R = 180;
@@ -165,15 +142,24 @@ function updateOwner(z){
 function checkWin(){
     let p1 = Object.values(owner).filter(o => o === 1).length;
     let p2 = Object.values(owner).filter(o => o === 2).length;
-    if(p1 >= 11) { document.getElementById("winner").textContent="🏆 SPIELER 1 GEWINNT!"; gameOver=true; }
-    else if(p2 >= 11) { document.getElementById("winner").textContent="🏆 SPIELER 2 GEWINNT!"; gameOver=true; }
+    
+    if(p1 >= 11 || p2 >= 11) {
+        let winnerName = (p1 >= 11) ? name1 : name2;
+        document.getElementById("winner").textContent = `🏆 ${winnerName} GEWINNT!`;
+        gameOver = true;
+
+        // Sieg global speichern
+        let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
+        stats[winnerName] = (stats[winnerName] || 0) + 1;
+        localStorage.setItem('allTimeStats', JSON.stringify(stats));
+    }
 }
 
 function updateUI(){
     const p1Count = Object.values(owner).filter(o => o === 1).length;
     const p2Count = Object.values(owner).filter(o => o === 2).length;
-    document.getElementById("s1").textContent = `Spieler 1: ${p1Count}`;
-    document.getElementById("s2").textContent = `Spieler 2: ${p2Count}`;
+    document.getElementById("s1").textContent = `${name1}: ${p1Count}`;
+    document.getElementById("s2").textContent = `${name2}: ${p2Count}`;
     document.getElementById("s1").style.opacity = currentPlayer === 1 ? "1" : "0.3";
     document.getElementById("s2").style.opacity = currentPlayer === 2 ? "1" : "0.3";
     document.getElementById("throws").textContent = "Würfe: " + throwsLeft;
@@ -317,19 +303,13 @@ function confirmReset() {
 }
 
 function resetGame(){
-    initData(); 
-    currentPlayer = 1; 
-    throwsLeft = 3; 
-    multiplier = 1; 
-    gameOver = false;
-    history = [];
-    document.getElementById("winner").textContent = ""; 
-    setMulti(1); 
-    updateUI(); 
-    drawBoard();
+    initData(); currentPlayer = 1; throwsLeft = 3; multiplier = 1; gameOver = false;
+    history = []; document.getElementById("winner").textContent = ""; 
+    setMulti(1); updateUI(); drawBoard();
 }
 
 initData();
+updateUI();
 drawBoard();
 </script>
 </body>
