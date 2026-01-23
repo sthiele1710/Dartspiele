@@ -55,7 +55,7 @@
         box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.7);
         border: 6px solid gold;
     }
-    /* NEU: Unentschieden Glow (Grau/Weiß) */
+    /* Unentschieden Glow (Grau/Weiß) */
     #game-border.draw-glow {
         box-shadow: inset 0 0 80px rgba(200, 200, 200, 0.5);
         border: 6px solid #ccc;
@@ -64,7 +64,7 @@
     /* --- TEXTE & UI --- */
     h1 { margin: 10px 0 5px 0; color: gold; font-size: 24px; position: relative; z-index: 1; }
 
-    /* NEU: Info für Serienstand */
+    /* Info für Serienstand */
     #seriesInfo { font-size: 14px; color: #888; margin-bottom: 5px; font-weight: bold; position: relative; z-index: 2; }
 
     #status {
@@ -106,7 +106,9 @@
         display: flex; flex-direction: column; justify-content: center;
         cursor: pointer; position: relative; user-select: none;
     }
-    .number { font-size: 22px; font-weight: bold; color: #333; }
+    /* HIER IST DIE ÄNDERUNG: GRÖSSERE SCHRIFT FÜR DIE ZAHLEN */
+    .number { font-size: 36px; font-weight: 900; color: #333; }
+    
     .x_hits { color: #ff3b3b; font-weight: bold; font-size: 14px; position: absolute; top: 5px; left: 0; width: 100%; }
     .o_hits { color: #00bfff; font-weight: bold; font-size: 14px; position: absolute; bottom: 5px; left: 0; width: 100%; }
     
@@ -336,12 +338,14 @@ function checkWin() {
         document.getElementById("winner").style.color = "#00ff00";
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
 
+        // HIER WURDE GEÄNDERT: Stats speichern AUCH im Turnier!
+        saveWin(winner);
+
         if (isTournament) {
             localStorage.setItem('tournament_winner_name', winner);
             setTimeout(() => { window.location.href = "tournament.html"; }, 3000);
             return; 
         }
-        saveWin(winner);
         return;
     }
 
@@ -366,8 +370,8 @@ function checkWin() {
 
 function saveWin(winnerName) {
     let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
-    if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0 };
-    if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0 };
+    if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0, x01: 0 };
+    if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0, x01: 0 };
     stats[winnerName].ttt = (stats[winnerName].ttt || 0) + 1;
     localStorage.setItem('allTimeStats', JSON.stringify(stats));
 }
