@@ -3,26 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Spiele Zentrale</title>
+    <title>WG Darts</title>
     <link rel="manifest" href="manifest.json">
-
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="WG Darts">
     <link rel="apple-touch-icon" href="icon.png">
-
     <link rel="icon" type="image/png" href="icon.png">
+
     <style>
-        body { margin: 0; font-family: sans-serif; background: #121212; color: white; text-align: center; }
-        .tab-nav { display: flex; background: #1f1f1f; }
+        body { margin: 0; font-family: sans-serif; background: #121212; color: white; text-align: center; -webkit-tap-highlight-color: transparent; }
+        .tab-nav { display: flex; background: #1f1f1f; position: sticky; top: 0; z-index: 10; }
         .tab-nav button { flex: 1; padding: 15px; border: none; background: none; color: #888; font-size: 16px; cursor: pointer; }
         .tab-nav button.active { color: gold; border-bottom: 3px solid gold; }
         .content { padding: 20px; display: none; }
         .content.active { display: block; }
-        input { width: 80%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: white; font-size: 16px; }
-        .menu-btn { display: block; background: #2a2a2a; color: white; text-decoration: none; padding: 20px; margin: 10px auto; border-radius: 12px; border-left: 8px solid gold; font-weight: bold; }
+        
+        input { width: 80%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: white; font-size: 16px; text-align: center; }
+        
+        .menu-btn { 
+            display: flex; justify-content: space-between; align-items: center;
+            background: #2a2a2a; color: white; text-decoration: none; 
+            padding: 20px; margin: 15px auto; border-radius: 12px; 
+            border-left: 8px solid gold; font-weight: bold; font-size: 18px;
+            transition: transform 0.1s;
+        }
+        .menu-btn:active { transform: scale(0.98); background: #333; }
+        .icon { font-size: 20px; color: #666; }
+
         table { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 14px; }
-        th, td { padding: 10px; border-bottom: 1px solid #333; text-align: left; }
+        th, td { padding: 12px; border-bottom: 1px solid #333; text-align: left; }
         th { color: gold; }
         .num { text-align: center; }
     </style>
@@ -39,9 +49,17 @@
         <input type="text" id="p1Name" placeholder="Name Spieler 1" oninput="saveNames()">
         <input type="text" id="p2Name" placeholder="Name Spieler 2" oninput="saveNames()">
         
-        <div style="margin-top: 20px;">
-            <a href="domination.html" class="menu-btn" style="border-color: #ff3b3b;">🎯 Dart Domination</a>
-            <a href="tictactoe.html" class="menu-btn" style="border-color: #00bfff;">❌ Tic Tac Toe</a>
+        <div style="margin-top: 30px;">
+            <a href="domination.html" class="menu-btn" style="border-color: #ff3b3b;">
+                <span>🎯 Domination</span> <span class="icon">❯</span>
+            </a>
+            <a href="tictactoe.html" class="menu-btn" style="border-color: #00bfff;">
+                <span>❌ Tic Tac Toe</span> <span class="icon">❯</span>
+            </a>
+            
+            <a href="tournament.html" class="menu-btn" style="border-color: gold; background: #332b00;">
+                <span>🏆 Turnier Modus</span> <span class="icon">❯</span>
+            </a>
         </div>
     </div>
 
@@ -51,13 +69,13 @@
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th class="num">🎯 Dart</th>
+                    <th class="num">🎯 Dom.</th>
                     <th class="num">❌ TTT</th>
                 </tr>
             </thead>
             <tbody id="leaderboard-body"></tbody>
         </table>
-        <button onclick="clearStats()" style="margin-top:30px; background:none; border:none; color:#555; font-size:12px;">Statistiken zurücksetzen</button>
+        <button onclick="clearStats()" style="margin-top:30px; background:none; border:none; color:#555; font-size:12px; padding: 20px;">Statistiken zurücksetzen</button>
     </div>
 
     <script>
@@ -83,16 +101,14 @@
             const stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
             const entries = Object.entries(stats);
             
-            // Sortieren nach Gesamt-Siegen
             entries.sort((a, b) => {
-                const totalA = (a[1].dart || 0) + (a[1].ttt || 0);
-                const totalB = (b[1].dart || 0) + (b[1].ttt || 0);
+                const totalA = ((typeof a[1] === 'number' ? a[1] : a[1].dart) || 0) + (a[1].ttt || 0);
+                const totalB = ((typeof b[1] === 'number' ? b[1] : b[1].dart) || 0) + (b[1].ttt || 0);
                 return totalB - totalA;
             });
 
             const body = document.getElementById('leaderboard-body');
             body.innerHTML = entries.map(([name, data]) => {
-                // Falls noch alte Daten (nur Zahl) existieren:
                 const dScore = (typeof data === 'number') ? data : (data.dart || 0);
                 const tScore = data.ttt || 0;
                 return `<tr><td>${name}</td><td class="num">${dScore}</td><td class="num">${tScore}</td></tr>`;
