@@ -141,7 +141,7 @@
         <button onclick="confirmReset(false)">🔄 Neu</button>
         <button onclick="confirmReset(true)">🔄 Neu (Bulls)</button>
         <button onclick="undo()">↩️ Undo</button>
-        <button onclick="location.href='index.html'" style="background:#666;">🏠 Home</button>
+        <button id="homeBtn" onclick="location.href='index.html'" style="background:#666;">🏠 Home</button>
     </div>
 </div>
 
@@ -152,9 +152,23 @@
 <button id="passBtn" onclick="passTurn()">⏭️ Zug beenden / Verfehlt</button>
 
 <script>
-// Namen laden
-let name1 = localStorage.getItem('dart_p1') || "Spieler 1";
-let name2 = localStorage.getItem('dart_p2') || "Spieler 2";
+// --- TURNIER LOGIK (NEU) ---
+const urlParams = new URLSearchParams(window.location.search);
+const isTournament = urlParams.get('tournament') === 'true';
+
+let name1, name2;
+
+if (isTournament) {
+    // Namen aus Turnier-Speicher
+    name1 = localStorage.getItem('tournament_p1') || "T-Spieler 1";
+    name2 = localStorage.getItem('tournament_p2') || "T-Spieler 2";
+    // Home Button verstecken
+    document.getElementById('homeBtn').style.display = 'none';
+} else {
+    // Normale Namen
+    name1 = localStorage.getItem('dart_p1') || "Spieler 1";
+    name2 = localStorage.getItem('dart_p2') || "Spieler 2";
+}
 
 let fieldNumbers=[], p1=Array(9).fill(0), p2=Array(9).fill(0);
 let currentPlayer=1, throwsLeft=3, multiplier=1;
@@ -299,6 +313,16 @@ function checkWin() {
         
         // Konfetti & Glow
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+
+        // --- TURNIER LOGIK (NEU) ---
+        if (isTournament) {
+            localStorage.setItem('tournament_winner_name', winner);
+            setTimeout(() => {
+                window.location.href = "tournament.html";
+            }, 3000);
+            return; // Beenden, damit es nicht in die normale Statistik fließt
+        }
+        
         saveWin(winner);
     }
 }
