@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -53,7 +54,11 @@
         border: 6px solid gold;
     }
 
-    h1 {margin:15px 0 10px 0; font-size:24px; color: gold;}
+    h1 {margin:15px 0 5px 0; font-size:24px; color: gold;}
+    
+    /* NEU: Info für Serienstand */
+    #seriesInfo { font-size: 14px; color: #888; margin-bottom: 10px; font-weight: bold; }
+
     #top { display:flex; justify-content:space-between; padding:0 15px; font-size:18px; max-width:440px; margin:auto; }
     .p1 { color:#ff3b3b; font-weight:bold; }
     .p2 { color:#00bfff; font-weight:bold; }
@@ -84,7 +89,7 @@
 <div id="game-border"></div>
 
 <h1>🎯 Domination</h1>
-<div id="top">
+<div id="seriesInfo"></div> <div id="top">
   <span id="s1" class="p1">Spieler 1: 0</span>
   <span id="s2" class="p2">Spieler 2: 0</span>
 </div>
@@ -132,6 +137,14 @@ if (isTournament) {
     // Home Button ausblenden
     const btn = document.getElementById('homeBtn');
     if(btn) btn.style.display = 'none';
+
+    // Serienstand anzeigen? (Best of Modus)
+    let s1 = urlParams.get('s1');
+    let s2 = urlParams.get('s2');
+    let target = urlParams.get('target');
+    if(s1 !== null) {
+        document.getElementById('seriesInfo').innerHTML = `Serie: <span style="color:#ff3b3b">${s1}</span> - <span style="color:#00bfff">${s2}</span> (First to ${target})`;
+    }
 } else {
     // Normale Namen
     name1 = localStorage.getItem('dart_p1') || "Spieler 1";
