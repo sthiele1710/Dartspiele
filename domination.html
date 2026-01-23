@@ -22,29 +22,38 @@
         text-align:center; 
         overflow-x: hidden;
         touch-action: manipulation; 
-        
-        /* NEU: Für den leuchtenden Rahmen */
-        min-height: 100vh;
+        padding-bottom: 20px; /* Platz unten */
+    }
+
+    /* NEU: Das Overlay für den Rand - Liegt FEST über dem Bildschirm */
+    #game-border {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none; /* Wichtig: Lässt Klicks durch! */
+        z-index: 9999; /* Ganz oben */
         box-sizing: border-box;
-        border: 2px solid transparent; /* Platzhalter */
+        border: 0px solid transparent;
         transition: box-shadow 0.8s ease-in-out, border-color 0.8s ease-in-out;
     }
 
-    /* NEU: Glow Effekte */
-    body.turn-p1 {
-        box-shadow: inset 0 0 40px rgba(255, 59, 59, 0.25);
-        border-color: rgba(255, 59, 59, 0.3);
+    /* Die Klassen für das Overlay */
+    #game-border.turn-p1 {
+        box-shadow: inset 0 0 50px rgba(255, 59, 59, 0.4); /* Stärkerer Glow */
+        border: 4px solid rgba(255, 59, 59, 0.5); /* Sichtbarer Rand */
     }
-    body.turn-p2 {
-        box-shadow: inset 0 0 40px rgba(0, 191, 255, 0.25);
-        border-color: rgba(0, 191, 255, 0.3);
+    #game-border.turn-p2 {
+        box-shadow: inset 0 0 50px rgba(0, 191, 255, 0.4);
+        border: 4px solid rgba(0, 191, 255, 0.5);
     }
-    body.winner-glow {
-        box-shadow: inset 0 0 60px rgba(255, 215, 0, 0.4);
-        border-color: gold;
+    #game-border.winner-glow {
+        box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.6);
+        border: 6px solid gold;
     }
 
-    h1 {margin:10px 0; font-size:24px; color: gold;}
+    h1 {margin:15px 0 10px 0; font-size:24px; color: gold;}
     #top { display:flex; justify-content:space-between; padding:0 15px; font-size:18px; max-width:440px; margin:auto; }
     .p1 { color:#ff3b3b; font-weight:bold; }
     .p2 { color:#00bfff; font-weight:bold; }
@@ -58,7 +67,7 @@
     button.func { background: #555; }
     
     #next-turn-container { max-width:440px; margin: 10px auto; padding: 0 10px; }
-    button.next-turn { background: #2e7d32; color: white; width: 100%; font-weight: bold; font-size: 16px; border: 1px solid #4caf50; }
+    button.next-turn { background: #2e7d32; color: white; width: 100%; font-weight: bold; font-size: 16px; border: 1px solid #4caf50; padding: 15px; border-radius: 8px;}
     
     #dartboard { width:100vw; max-width:480px; height:auto; display:block; margin:auto; touch-action: none; }
     #winner { font-size:28px; margin:15px 0; font-weight:bold; color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5);}
@@ -71,6 +80,8 @@
 </style>
 </head>
 <body>
+
+<div id="game-border"></div>
 
 <h1>🎯 Domination</h1>
 <div id="top">
@@ -108,7 +119,6 @@
 </div>
 
 <script>
-// Namen laden
 let name1 = localStorage.getItem('dart_p1') || "Spieler 1";
 let name2 = localStorage.getItem('dart_p2') || "Spieler 2";
 
@@ -163,7 +173,6 @@ function throwDart(num){
     if(gameOver) return;
     if(multiplier===3 && num===25) return; 
     
-    // NEU: Haptisches Feedback (Vibration)
     if(navigator.vibrate) navigator.vibrate(30);
 
     snapshot();
@@ -192,11 +201,10 @@ function checkWin(){
         document.getElementById("winner").textContent = `🏆 ${winnerName} GEWINNT!`;
         gameOver = true;
 
-        // NEU: Goldener Glow & Konfetti
-        document.body.className = "winner-glow";
+        // NEU: Glow auf Overlay setzen
+        document.getElementById('game-border').className = "winner-glow";
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
 
-        // Sieg global speichern
         let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
         if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0 };
         if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0 };
@@ -210,14 +218,13 @@ function updateUI(){
     const p2Count = Object.values(owner).filter(o => o === 2).length;
     document.getElementById("s1").textContent = `${name1}: ${p1Count}`;
     document.getElementById("s2").textContent = `${name2}: ${p2Count}`;
-    // Opacity brauchen wir nicht mehr zwingend durch den Glow, aber schadet nicht
     document.getElementById("s1").style.opacity = currentPlayer === 1 ? "1" : "0.3";
     document.getElementById("s2").style.opacity = currentPlayer === 2 ? "1" : "0.3";
     document.getElementById("throws").textContent = "Würfe: " + throwsLeft;
 
-    // NEU: Glow Effekt Update
+    // NEU: Glow auf Overlay setzen (nicht Body)
     if(!gameOver) {
-        document.body.className = (currentPlayer === 1) ? "turn-p1" : "turn-p2";
+        document.getElementById('game-border').className = (currentPlayer === 1) ? "turn-p1" : "turn-p2";
     }
 }
 
@@ -244,7 +251,6 @@ function drawBoard(){
         const a1 = ((i * 18 + ROTATION_OFFSET) - 90) * Math.PI / 180;
         const a2 = (((i + 1) * 18 + ROTATION_OFFSET) - 90) * Math.PI / 180;
         const x1=BOARD_R*Math.cos(a1), y1=BOARD_R*Math.sin(a1), x2=BOARD_R*Math.cos(a2), y2=BOARD_R*Math.sin(a2);
-
         const bg = document.createElementNS("http://www.w3.org/2000/svg","path");
         bg.setAttribute("d",`M0,0 L${x1},${y1} A${BOARD_R},${BOARD_R} 0 0,1 ${x2},${y2} Z`);
         bg.setAttribute("fill","#2a2a2a"); bg.setAttribute("stroke","#000");
@@ -252,7 +258,6 @@ function drawBoard(){
 
         let h1 = hits[n][1], h2 = hits[n][2];
         let maxVal = Math.max(3, h1, h2);
-
         if(h1 === h2 && h1 > 0) {
             const r = BULL_R + (BOARD_R - BULL_R) * (h1 / maxVal);
             const path = document.createElementNS("http://www.w3.org/2000/svg","path");
@@ -276,8 +281,7 @@ function drawBoard(){
     const b1 = hits[25][1], b2 = hits[25][2];
     const maxB = Math.max(3, b1, b2);
     const bBg = document.createElementNS("http://www.w3.org/2000/svg","circle");
-    bBg.setAttribute("r", BULL_R); bBg.setAttribute("fill", "#2a2a2a"); bBg.setAttribute("stroke","#000");
-    svg.appendChild(bBg);
+    bBg.setAttribute("r", BULL_R); bBg.setAttribute("fill", "#2a2a2a"); bBg.setAttribute("stroke","#000"); svg.appendChild(bBg);
     if(b1 > 0 || b2 > 0) {
         const rMax = BULL_R * (Math.max(b1, b2) / maxB);
         const circ = document.createElementNS("http://www.w3.org/2000/svg","circle");
@@ -299,7 +303,6 @@ function drawBoard(){
         const mid = (a1 + a2) / 2;
         const h1 = hits[n][1], h2 = hits[n][2];
         const maxVal = Math.max(3, h1, h2);
-
         if(h1 === h2 && h1 > 0) {
             const rEnd = BULL_R + (BOARD_R - BULL_R) * (h1 / maxVal);
             const labelR = BULL_R + (rEnd - BULL_R) / 2;
@@ -316,14 +319,12 @@ function drawBoard(){
                 }
             });
         }
-
         const lx = (BOARD_R + 35) * Math.cos(mid), ly = (BOARD_R + 35) * Math.sin(mid);
         const txt = document.createElementNS("http://www.w3.org/2000/svg","text");
         txt.setAttribute("x", lx); txt.setAttribute("y", ly);
         txt.setAttribute("class", "numberLabel" + (owner[n]===1?" owned-1":owner[n]===2?" owned-2":""));
         txt.setAttribute("text-anchor","middle"); txt.setAttribute("alignment-baseline","middle");
         txt.textContent = n; svg.appendChild(txt);
-
         const click = document.createElementNS("http://www.w3.org/2000/svg","path");
         const x1=BOARD_R*Math.cos(a1), y1=BOARD_R*Math.sin(a1), x2=BOARD_R*Math.cos(a2), y2=BOARD_R*Math.sin(a2);
         click.setAttribute("d",`M0,0 L${x1},${y1} A${BOARD_R},${BOARD_R} 0 0,1 ${x2},${y2} Z`);
@@ -345,7 +346,6 @@ function drawBoard(){
             }
         });
     }
-
     const bClick = document.createElementNS("http://www.w3.org/2000/svg","circle");
     bClick.setAttribute("r", BULL_R); bClick.setAttribute("fill","transparent");
     bClick.style.cursor="pointer"; bClick.onclick = () => throwDart(25);
@@ -353,7 +353,7 @@ function drawBoard(){
 }
 
 function confirmReset() {
-    if (confirm("Möchtest du das Spiel wirklich neu starten? Alle Treffer werden gelöscht.")) {
+    if (confirm("Reset?")) {
         resetGame();
     }
 }
@@ -364,17 +364,13 @@ function resetGame(){
     setMulti(1); updateUI(); drawBoard();
 }
 
-// NEU: Screen Wake Lock Funktion
 async function requestWakeLock() {
   if ('wakeLock' in navigator) {
     try {
       await navigator.wakeLock.request('screen');
-    } catch (err) {
-      console.log('Wake Lock Error:', err);
-    }
+    } catch (err) { console.log(err); }
   }
 }
-// Aktiviert sich beim ersten Klick
 document.addEventListener('click', requestWakeLock, { once: true });
 
 initData();
