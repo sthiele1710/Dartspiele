@@ -3,73 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Spiele-Zentrale</title>
+    <title>Spiele Zentrale</title>
     <style>
-        body { 
-            margin: 0; 
-            font-family: system-ui, -apple-system, sans-serif; 
-            background: #121212; 
-            color: white; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            min-height: 100vh;
-            touch-action: manipulation;
-        }
-        h1 { 
-            color: gold; 
-            margin-bottom: 30px; 
-            font-size: 28px;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
-        }
-        .container {
-            width: 90%;
-            max-width: 400px;
-        }
-        .menu-btn { 
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #2a2a2a; 
-            color: white; 
-            text-decoration: none; 
-            padding: 25px; 
-            margin-bottom: 15px; 
-            border-radius: 15px; 
-            font-size: 20px;
-            font-weight: bold;
-            border: 1px solid #333;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        }
-        .menu-btn:active { 
-            transform: scale(0.96); 
-            background: #333; 
-        }
-        .icon { font-size: 30px; }
-        .domination { border-left: 8px solid #ff3b3b; }
-        .tictactoe { border-left: 8px solid #00bfff; }
-        p { color: #888; margin-top: 20px; font-size: 14px; }
+        body { margin: 0; font-family: sans-serif; background: #121212; color: white; text-align: center; }
+        .tab-nav { display: flex; background: #1f1f1f; }
+        .tab-nav button { flex: 1; padding: 15px; border: none; background: none; color: #888; font-size: 16px; cursor: pointer; }
+        .tab-nav button.active { color: gold; border-bottom: 3px solid gold; }
+        .content { padding: 20px; display: none; }
+        .content.active { display: block; }
+        input { width: 80%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: white; font-size: 16px; }
+        .menu-btn { display: block; background: #2a2a2a; color: white; text-decoration: none; padding: 20px; margin: 10px auto; border-radius: 12px; border-left: 8px solid gold; font-weight: bold; }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 10px; border-bottom: 1px solid #333; text-align: left; }
+        th { color: gold; }
+        .num { text-align: center; }
     </style>
 </head>
 <body>
 
-    <h1>🎮 Meine Apps</h1>
-
-    <div class="container">
-        <a href="domination.html" class="menu-btn domination">
-            <span>🎯 Dart Domination</span>
-            <span class="icon">❯</span>
-        </a>
-
-        <a href="tictactoe.html" class="menu-btn tictactoe">
-            <span>❌ Tic Tac Toe</span>
-            <span class="icon">❯</span>
-        </a>
+    <div class="tab-nav">
+        <button id="btn-games" class="active" onclick="showTab('games')">Spiele</button>
+        <button id="btn-stats" onclick="showTab('stats')">Bestenliste</button>
     </div>
 
-    <p>Tipp: "Zum Home-Bildschirm hinzufügen"</p>
+    <div id="games" class="content active">
+        <h1>🎮 Spiele wählen</h1>
+        <input type="text" id="p1Name" placeholder="Name Spieler 1" oninput="saveNames()">
+        <input type="text" id="p2Name" placeholder="Name Spieler 2" oninput="saveNames()">
+        
+        <div style="margin-top: 20px;">
+            <a href="domination.html" class="menu-btn" style="border-color: #ff3b3b;">🎯 Dart Domination</a>
+            <a href="tictactoe.html" class="menu-btn" style="border-color: #00bfff;">❌ Tic Tac Toe</a>
+        </div>
+    </div>
 
+    <div id="stats" class="content">
+        <h1>🏆 All-Time Siege</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th class="num">🎯 Dart</th>
+                    <th class="num">❌ TTT</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboard-body"></tbody>
+        </table>
+        <button onclick="clearStats()" style="margin-top:30px; background:none; border:none; color:#555; font-size:12px;">Statistiken zurücksetzen</button>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('btn-' + tabId).classList.add('active');
+            if(tabId === 'stats') renderLeaderboard();
+        }
+
+        function saveNames() {
+            localStorage.setItem('dart_p1', document.getElementById('p1Name').value);
+            localStorage.setItem('dart_p2', document.getElementById('p2Name').value);
+        }
+
+        window.onload = () => {
+            if(localStorage.getItem('dart_p1')) document.getElementById('p1Name').value = localStorage.getItem('dart_p1');
+            if(localStorage.getItem('dart_p2')) document.getElementById('p2Name').value = localStorage.getItem('dart_p2');
+        };
+
+        function renderLeaderboard() {
+            const stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
+            const entries = Object.entries(stats);
+            
+            // Sortieren nach Gesamt-Siegen
+            entries.sort((a, b) => {
+                const totalA = (a[1].dart || 0) + (a[1].ttt || 0);
+                const totalB = (b[1].dart || 0) + (b[1].ttt || 0);
+                return totalB - totalA;
+            });
+
+            const body = document.getElementById('leaderboard-body');
+            body.innerHTML = entries.map(([name, data]) => {
+                // Falls noch alte Daten (nur Zahl) existieren:
+                const dScore = (typeof data === 'number') ? data : (data.dart || 0);
+                const tScore = data.ttt || 0;
+                return `<tr><td>${name}</td><td class="num">${dScore}</td><td class="num">${tScore}</td></tr>`;
+            }).join('');
+        }
+
+        function clearStats() {
+            if(confirm("Wirklich alles löschen?")) {
+                localStorage.removeItem('allTimeStats');
+                renderLeaderboard();
+            }
+        }
+    </script>
 </body>
 </html>
