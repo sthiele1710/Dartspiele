@@ -22,7 +22,7 @@
         text-align:center; 
         overflow-x: hidden;
         touch-action: manipulation; 
-        padding-bottom: 20px; /* Platz unten */
+        padding-bottom: 20px; 
     }
 
     /* NEU: Das Overlay für den Rand - Liegt FEST über dem Bildschirm */
@@ -41,8 +41,8 @@
 
     /* Die Klassen für das Overlay */
     #game-border.turn-p1 {
-        box-shadow: inset 0 0 50px rgba(255, 59, 59, 0.4); /* Stärkerer Glow */
-        border: 4px solid rgba(255, 59, 59, 0.5); /* Sichtbarer Rand */
+        box-shadow: inset 0 0 50px rgba(255, 59, 59, 0.4); 
+        border: 4px solid rgba(255, 59, 59, 0.5); 
     }
     #game-border.turn-p2 {
         box-shadow: inset 0 0 50px rgba(0, 191, 255, 0.4);
@@ -99,7 +99,7 @@
   <div class="btn-row">
     <button class="func" onclick="undo()">↩️ Undo</button>
     <button class="func" onclick="confirmReset()">🔄 Reset</button>
-    <button class="func" onclick="location.href='index.html'">🏠 Home</button>
+    <button class="func" id="homeBtn" onclick="location.href='index.html'">🏠 Home</button>
   </div>
 </div>
 
@@ -119,8 +119,25 @@
 </div>
 
 <script>
-let name1 = localStorage.getItem('dart_p1') || "Spieler 1";
-let name2 = localStorage.getItem('dart_p2') || "Spieler 2";
+// --- TURNIER LOGIK START ---
+const urlParams = new URLSearchParams(window.location.search);
+const isTournament = urlParams.get('tournament') === 'true';
+
+let name1, name2;
+
+if (isTournament) {
+    // Namen aus dem Turnierspeicher laden
+    name1 = localStorage.getItem('tournament_p1') || "T-Spieler 1";
+    name2 = localStorage.getItem('tournament_p2') || "T-Spieler 2";
+    // Home Button ausblenden
+    const btn = document.getElementById('homeBtn');
+    if(btn) btn.style.display = 'none';
+} else {
+    // Normale Namen
+    name1 = localStorage.getItem('dart_p1') || "Spieler 1";
+    name2 = localStorage.getItem('dart_p2') || "Spieler 2";
+}
+// --- TURNIER LOGIK ENDE ---
 
 const order=[20,1,18,4,13,6,10,15,2,17,3,19,7,16,8,11,14,9,12,5];
 const ROTATION_OFFSET = -9;
@@ -204,6 +221,15 @@ function checkWin(){
         // NEU: Glow auf Overlay setzen
         document.getElementById('game-border').className = "winner-glow";
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+
+        // --- TURNIER LOGIK (NEU) ---
+        if(isTournament) {
+            localStorage.setItem('tournament_winner_name', winnerName);
+            setTimeout(() => {
+                window.location.href = "tournament.html";
+            }, 3000);
+            return; // Beenden, damit es nicht in die normale Statistik fließt
+        }
 
         let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
         if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0 };
@@ -331,21 +357,6 @@ function drawBoard(){
         click.setAttribute("fill","transparent"); click.style.cursor="pointer";
         click.onclick = () => throwDart(n); svg.appendChild(click);
     });
-
-    if(b1 === b2 && b1 > 0) {
-        const rEnd = BULL_R * (b1 / maxB);
-        drawBadge(svg, 0, -rEnd/2, b1, "#666");
-    } else {
-        let bData = [{id:1, h:b1}, {id:2, h:b2}].sort((a,b) => a.h - b.h);
-        let innerB = 0;
-        bData.forEach(p => {
-            if(p.h > 0) {
-                const rEnd = BULL_R * (p.h / maxB);
-                drawBadge(svg, 0, -(innerB + (rEnd - innerB) / 2), p.h, p.id === 1 ? "#ff3b3b" : "#00bfff");
-                innerB = rEnd;
-            }
-        });
-    }
     const bClick = document.createElementNS("http://www.w3.org/2000/svg","circle");
     bClick.setAttribute("r", BULL_R); bClick.setAttribute("fill","transparent");
     bClick.style.cursor="pointer"; bClick.onclick = () => throwDart(25);
