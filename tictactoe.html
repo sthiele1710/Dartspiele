@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Dart Tic Tac Toe</title>
-<link rel="manifest" href="manifest.json">
 
+<link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="WG Darts">
@@ -23,27 +23,26 @@
         padding: 10px;
         text-align: center;
         touch-action: manipulation;
-        padding-bottom: 20px;
-        /* Wichtig für den Rand: */
+        padding-bottom: 30px;
         box-sizing: border-box;
         min-height: 100vh;
     }
 
-    /* FIXIERTER GLOW RAHMEN (Overlay) */
+    /* --- DER LEUCHTENDE RAND (Overlay) --- */
     #game-border {
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        pointer-events: none; /* WICHTIG: Lässt Klicks durch zu den Buttons! */
-        z-index: 9999; /* Liegt optisch über allem */
+        pointer-events: none; /* Klicks gehen durch! */
+        z-index: 9999;
         box-sizing: border-box;
         border: 0px solid transparent;
         transition: box-shadow 0.8s ease-in-out, border-color 0.8s ease-in-out;
     }
-
-    /* Die Klassen für den Rahmen */
+    
+    /* Rand-Effekte */
     #game-border.turn-p1 {
         box-shadow: inset 0 0 50px rgba(255, 59, 59, 0.4);
         border: 4px solid rgba(255, 59, 59, 0.3);
@@ -53,101 +52,69 @@
         border: 4px solid rgba(0, 191, 255, 0.3);
     }
     #game-border.winner-glow {
-        box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.8);
+        box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.7);
         border: 6px solid gold;
     }
 
-    h1 { margin: 5px 0; color: gold; font-size: 24px; position: relative; z-index: 1;}
+    /* --- TEXTE & UI --- */
+    h1 { margin: 10px 0; color: gold; font-size: 24px; position: relative; z-index: 1; }
 
     #status {
-        margin: 10px auto;
-        max-width: 420px;
-        display: flex;
-        justify-content: space-between;
-        font-size: 16px;
-        background: #333;
-        padding: 10px;
-        border-radius: 10px;
+        margin: 10px auto; max-width: 420px;
+        display: flex; justify-content: space-between;
+        font-size: 16px; background: #333;
+        padding: 10px; border-radius: 10px;
         position: relative; z-index: 1;
     }
-
     .player1 { color: #ff3b3b; font-weight: bold; }
     .player2 { color: #00bfff; font-weight: bold; }
 
-    #controls {
-        margin: 10px auto;
-        max-width: 420px;
-        position: relative; z-index: 1;
-    }
+    #throwsDisplay { margin: 10px 0; font-size: 18px; font-weight: bold; position: relative; z-index: 1; }
 
-    #controls .row {
-        display: flex;
-        justify-content: center;
-        gap: 6px;
-        margin-bottom: 6px;
-    }
-
+    /* --- CONTROLS --- */
+    #controls { margin: 0 auto; max-width: 420px; position: relative; z-index: 1; }
+    #controls .row { display: flex; justify-content: center; gap: 6px; margin-bottom: 6px; }
     #controls button {
-        flex: 1;
-        padding: 12px;
-        font-size: 16px;
-        border: none;
-        border-radius: 8px;
-        background: #444;
-        color: white;
-        cursor: pointer;
-        user-select: none;
+        flex: 1; padding: 12px; font-size: 15px; border: none; border-radius: 8px;
+        background: #444; color: white; cursor: pointer; user-select: none;
+    }
+    #controls button:active { transform: scale(0.96); }
+    #controls button.active { background: gold; color: black; font-weight: bold; }
+
+    /* --- GEWINNER TEXT (Wie in Domination) --- */
+    #winner {
+        font-size: 26px; margin: 15px 0; font-weight: bold;
+        color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5);
+        min-height: 30px; position: relative; z-index: 1;
     }
 
-    #controls button:active { transform: scale(0.98); }
-
-    #controls button.active {
-        background: gold;
-        color: black;
-        font-weight: bold;
-    }
-
+    /* --- SPIELFELD --- */
     #board {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
-        max-width: 420px;
-        margin: 10px auto;
-        position: relative; z-index: 1;
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+        max-width: 420px; margin: 0 auto; position: relative; z-index: 1;
     }
-
     .cell {
-        background: #e0e0e0;
-        color: black;
-        border-radius: 6px;
-        min-height: 90px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        cursor: pointer;
-        position: relative;
-        user-select: none;
+        background: #e0e0e0; color: black; border-radius: 6px; min-height: 90px;
+        display: flex; flex-direction: column; justify-content: center;
+        cursor: pointer; position: relative; user-select: none;
     }
-
     .number { font-size: 22px; font-weight: bold; color: #333; }
     .x_hits { color: #ff3b3b; font-weight: bold; font-size: 14px; position: absolute; top: 5px; left: 0; width: 100%; }
     .o_hits { color: #00bfff; font-weight: bold; font-size: 14px; position: absolute; bottom: 5px; left: 0; width: 100%; }
-
+    
     .complete { font-size: 60px; font-weight: bold; line-height: 1; }
     .complete.x { color: #ff3b3b; }
     .complete.o { color: #00bfff; }
+    .winner-cell { background: #fff2a8; border: 3px solid gold; }
 
-    .winner { background: #fff2a8; border: 3px solid gold; }
-
-    /* Zug beenden Button */
+    /* --- PASS BUTTON --- */
     #passBtn {
-        padding: 15px; font-size: 18px; margin-top: 5px; border-radius: 8px;
+        padding: 15px; font-size: 18px; margin-top: 15px; border-radius: 8px;
         background-color: #2e7d32; color: white; font-weight: bold;
         max-width: 420px; width: 100%; border: none; cursor: pointer;
         position: relative; z-index: 1;
     }
     #passBtn:active { background-color: #1b5e20; transform: scale(0.98); }
-
 </style>
 </head>
 
@@ -155,13 +122,14 @@
 
 <div id="game-border"></div>
 
-<h1>🎯 Dart Tic Tac Toe</h1>
+<h1>🎯 Tic Tac Toe</h1>
 
 <div id="status">
     <span id="p1Label" class="player1">Spieler 1 (X)</span>
     <span id="p2Label" class="player2">Spieler 2 (O)</span>
 </div>
-<div id="throwsDisplay" style="margin-bottom: 10px; font-size: 18px; font-weight: bold; position: relative; z-index: 1;">Würfe: 3</div>
+
+<div id="throwsDisplay">Würfe: 3</div>
 
 <div id="controls">
     <div class="row">
@@ -177,6 +145,8 @@
     </div>
 </div>
 
+<div id="winner"></div>
+
 <div id="board"></div>
 
 <button id="passBtn" onclick="passTurn()">⏭️ Zug beenden / Verfehlt</button>
@@ -186,17 +156,32 @@
 let name1 = localStorage.getItem('dart_p1') || "Spieler 1";
 let name2 = localStorage.getItem('dart_p2') || "Spieler 2";
 
-let fieldNumbers = [];
-let p1 = Array(9).fill(0);
-let p2 = Array(9).fill(0);
-let currentPlayer = 1;
-let throwsLeft = 3;
-let multiplier = 1;
-let gameOver = false;
-let winningCombo = [];
-let history = [];
+let fieldNumbers=[], p1=Array(9).fill(0), p2=Array(9).fill(0);
+let currentPlayer=1, throwsLeft=3, multiplier=1;
+let gameOver=false, winningCombo=[], history=[];
 
-/* ---------- STATE ---------- */
+// --- INIT & RESET ---
+function confirmReset(hard) { if(confirm("Spiel neu starten?")) resetGame(hard); }
+
+function resetGame(hard=false) {
+    history = [];
+    const nums = [...Array(20).keys()].map(i=>i+1).concat([25]);
+    if (hard) {
+        const others = nums.filter(n=>n!==25).sort(()=>Math.random()-0.5).slice(0,8);
+        fieldNumbers = Array.from({length:9},(_,i)=>i===4?25:others.pop());
+    } else {
+        fieldNumbers = nums.sort(()=>Math.random()-0.5).slice(0,9);
+    }
+    p1.fill(0); p2.fill(0); currentPlayer=1; throwsLeft=3; multiplier=1; 
+    gameOver=false; winningCombo=[];
+    
+    // UI Reset
+    document.getElementById("winner").textContent = ""; // Text leeren
+    setMultiplier(1);
+    updateUI();
+}
+
+// --- CORE LOGIC ---
 function snapshot() {
     history.push(JSON.parse(JSON.stringify({
         p1, p2, currentPlayer, throwsLeft, multiplier, gameOver, winningCombo
@@ -206,67 +191,11 @@ function snapshot() {
 function undo() {
     if (!history.length) return;
     const s = history.pop();
-    p1 = s.p1;
-    p2 = s.p2;
-    currentPlayer = s.currentPlayer;
-    throwsLeft = s.throwsLeft;
-    multiplier = s.multiplier;
-    gameOver = s.gameOver;
-    winningCombo = s.winningCombo;
-    updateUI();
-}
-
-/* ---------- RESET ---------- */
-function confirmReset(hard) {
-    if (confirm("Spiel wirklich zurücksetzen?")) resetGame(hard);
-}
-
-function resetGame(hard=false) {
-    history = [];
-    const nums = [...Array(20).keys()].map(i=>i+1).concat([25]);
-    if (hard) {
-        // Bullseye in die Mitte (Index 4), Rest zufällig
-        const others = nums.filter(n=>n!==25).sort(()=>Math.random()-0.5).slice(0,8);
-        fieldNumbers = Array.from({length:9},(_,i)=>i===4?25:others.pop());
-    } else {
-        fieldNumbers = nums.sort(()=>Math.random()-0.5).slice(0,9);
-    }
-
-    p1.fill(0); p2.fill(0);
-    currentPlayer = 1;
-    throwsLeft = 3;
-    multiplier = 1;
-    gameOver = false;
-    winningCombo = [];
-    setMultiplier(1);
+    p1=s.p1; p2=s.p2; currentPlayer=s.currentPlayer; throwsLeft=s.throwsLeft;
+    multiplier=s.multiplier; gameOver=s.gameOver; winningCombo=s.winningCombo;
     
-    // UI aktualisieren (auch Status Reset)
+    document.getElementById("winner").textContent = gameOver ? `🏆 GEWINNER!` : "";
     updateUI();
-}
-
-/* ---------- UI ---------- */
-function updateUI() {
-    // Status Bar
-    const p1Label = document.getElementById("p1Label");
-    const p2Label = document.getElementById("p2Label");
-    p1Label.textContent = `${name1} (X)`;
-    p2Label.textContent = `${name2} (O)`;
-    
-    // Opacity für aktiven Spieler
-    p1Label.style.opacity = currentPlayer === 1 ? "1" : "0.3";
-    p2Label.style.opacity = currentPlayer === 2 ? "1" : "0.3";
-
-    const tDisplay = document.getElementById("throwsDisplay");
-    tDisplay.textContent = `Würfe: ${throwsLeft}`;
-    tDisplay.style.color = "white"; // Reset Farbe (falls vorher Gold)
-
-    // RAHMEN AKTUALISIEREN (GLOW)
-    const border = document.getElementById("game-border");
-    if(!gameOver) {
-        border.className = (currentPlayer === 1) ? "turn-p1" : "turn-p2";
-    }
-
-    renderBoard();
 }
 
 function setMultiplier(m) {
@@ -277,115 +206,99 @@ function setMultiplier(m) {
     document.getElementById("tripleBtn").classList.toggle("active", m===3);
 }
 
+function updateUI() {
+    // Label Updates
+    const p1Label = document.getElementById("p1Label");
+    const p2Label = document.getElementById("p2Label");
+    p1Label.textContent = `${name1} (X)`;
+    p2Label.textContent = `${name2} (O)`;
+    p1Label.style.opacity = currentPlayer === 1 ? "1" : "0.3";
+    p2Label.style.opacity = currentPlayer === 2 ? "1" : "0.3";
+
+    document.getElementById("throwsDisplay").textContent = `Würfe: ${throwsLeft}`;
+    
+    // RAHMEN UPDATE
+    const border = document.getElementById("game-border");
+    if (gameOver) {
+        border.className = "winner-glow";
+    } else {
+        border.className = (currentPlayer === 1) ? "turn-p1" : "turn-p2";
+    }
+
+    renderBoard();
+}
+
 function renderBoard() {
     const board = document.getElementById("board");
     board.innerHTML = "";
-    for (let i=0;i<9;i++) {
+    for (let i=0; i<9; i++) {
         const c = document.createElement("div");
         c.className = "cell";
-        if (winningCombo.includes(i)) c.classList.add("winner");
+        if (winningCombo.includes(i)) c.classList.add("winner-cell");
 
-        // Anzeige-Logik
-        // 4 Hits schließen das Feld
         if (p1[i] >= 4) {
             c.innerHTML = `<div class="complete x">X</div>`;
         } else if (p2[i] >= 4) {
             c.innerHTML = `<div class="complete o">O</div>`;
         } else {
-            // Normale Anzeige: Hits oben und unten, Zahl in der Mitte
             c.innerHTML = `
                 <div class="x_hits">${"X".repeat(p1[i])}</div>
                 <div class="number">${fieldNumbers[i]}</div>
                 <div class="o_hits">${"O".repeat(p2[i])}</div>
             `;
         }
-
-        c.onclick = ()=>clickField(i);
+        c.onclick = () => clickField(i);
         board.appendChild(c);
     }
 }
 
-/* ---------- GAMEPLAY ---------- */
+// --- GAMEPLAY ---
 function clickField(idx) {
     if (gameOver) return;
-    
-    // Feld gehört schon jemandem? Abbruch.
     if (p1[idx] >= 4 || p2[idx] >= 4) return;
-    
-    // Bullseye darf nicht verdreifacht werden
     if (fieldNumbers[idx] === 25 && multiplier === 3) return;
 
-    // Vibration (Feature)
     if(navigator.vibrate) navigator.vibrate(30);
-
     snapshot();
-    
-    if (currentPlayer === 1) {
-        p1[idx] = Math.min(4, p1[idx] + multiplier); // Max 4 Hits
-    } else {
-        p2[idx] = Math.min(4, p2[idx] + multiplier); // Max 4 Hits
-    }
+
+    if (currentPlayer === 1) p1[idx] = Math.min(4, p1[idx] + multiplier);
+    else p2[idx] = Math.min(4, p2[idx] + multiplier);
 
     throwsLeft--;
     endThrow();
 }
 
 function endThrow() {
-    multiplier = 1;
-    setMultiplier(1);
-
-    checkWin(); // Prüfen ob das Spiel vorbei ist BEVOR der Spieler wechselt
-
-    if (!gameOver) {
-        if (throwsLeft === 0) {
-            currentPlayer = currentPlayer === 1 ? 2 : 1;
-            throwsLeft = 3;
-        }
+    multiplier = 1; setMultiplier(1);
+    checkWin();
+    if (!gameOver && throwsLeft === 0) {
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        throwsLeft = 3;
     }
     updateUI();
 }
 
-/* ---------- PASS TURN ---------- */
 function passTurn() {
     if (gameOver) return;
-    snapshot();
-    throwsLeft = 0; // Setzt Würfe auf 0 -> Triggered Spielerwechsel in endThrow
-    endThrow();
+    snapshot(); throwsLeft = 0; endThrow();
 }
 
 function checkWin() {
-    const wins = [
-        [0,1,2],[3,4,5],[6,7,8],
-        [0,3,6],[1,4,7],[2,5,8],
-        [0,4,8],[2,4,6]
-    ];
-    
+    const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
     let winner = null;
 
     for (const w of wins) {
-        if (w.every(i => p1[i] >= 4)) {
-            winningCombo = w;
-            winner = name1;
-        } else if (w.every(i => p2[i] >= 4)) {
-            winningCombo = w;
-            winner = name2;
-        }
+        if (w.every(i => p1[i] >= 4)) { winningCombo = w; winner = name1; }
+        else if (w.every(i => p2[i] >= 4)) { winningCombo = w; winner = name2; }
     }
 
     if (winner) {
         gameOver = true;
+        // Text in das Winner-Div schreiben (wie bei Domination)
+        document.getElementById("winner").textContent = `🏆 ${winner} GEWINNT!`;
         
-        // Anzeige aktualisieren
-        const tDisplay = document.getElementById("throwsDisplay");
-        tDisplay.textContent = `🏆 ${winner} GEWINNT!`;
-        tDisplay.style.color = "gold";
-        
-        // RAHMEN AUF GOLD SETZEN
-        document.getElementById("game-border").className = "winner-glow";
-        
-        // KONFETTI STARTEN
+        // Konfetti & Glow
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-
         saveWin(winner);
     }
 }
@@ -394,23 +307,18 @@ function saveWin(winnerName) {
     let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
     if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0 };
     if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0 };
-    
-    // Hier wird der Sieg als "TTT" gespeichert
     stats[winnerName].ttt = (stats[winnerName].ttt || 0) + 1;
     localStorage.setItem('allTimeStats', JSON.stringify(stats));
 }
 
-// WAKELOCK (Bildschirm anlassen)
+// --- WAKE LOCK ---
 async function requestWakeLock() {
-  if ('wakeLock' in navigator) {
-    try { await navigator.wakeLock.request('screen'); } catch (err) { console.log(err); }
-  }
+  if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch (err) {} }
 }
 document.addEventListener('click', requestWakeLock, { once: true });
 
-/* ---------- START ---------- */
+// START
 resetGame();
 </script>
-
 </body>
 </html>
