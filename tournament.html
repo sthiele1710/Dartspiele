@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -33,7 +32,9 @@
     th { color: gold; }
     .match-card { background: #2a2a2a; padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 5px solid #555; display: flex; justify-content: space-between; align-items: center; }
     .match-card.done { border-left-color: gold; opacity: 0.6; }
+    .match-card.draw { border-left-color: #888; opacity: 0.6; }
     .winner-text { color: gold; font-weight: bold; font-size: 12px;}
+    .draw-text { color: #ccc; font-weight: bold; font-size: 12px; }
 
     /* K.O. Baum */
     .bracket { display: flex; flex-direction: column; gap: 20px; overflow-x: auto; padding: 10px; }
@@ -50,7 +51,8 @@
     <h3>1. Spiel wählen</h3>
     <select id="gameSelect">
         <option value="domination.html">🎯 Domination</option>
-        <option value="x01.html">💯 301 / 501</option> <option value="tictactoe.html">❌ Tic Tac Toe</option>
+        <option value="x01.html">💯 301 / 501</option>
+        <option value="tictactoe.html">❌ Tic Tac Toe</option>
     </select>
 
     <h3>2. Modus</h3>
@@ -142,7 +144,7 @@
                 opt.value = n; opt.innerText = n + " Spieler";
                 sel.appendChild(opt);
             });
-        } else { // League
+        } else { 
             label.innerText = "3. Spieleranzahl";
             opts = [3, 4, 5, 6, 7, 8]; 
             opts.forEach(n => {
@@ -238,10 +240,12 @@
         let stats = {};
         tournament.players.forEach(p => stats[p] = {w:0, l:0});
         tournament.matches.forEach(m => {
-            if(m.winner) {
+            if(m.winner && m.winner !== 'draw') {
                 stats[m.winner].w++;
-                stats[(m.winner === m.p1) ? m.p2 : m.p1].l++;
+                let loser = (m.winner === m.p1) ? m.p2 : m.p1;
+                stats[loser].l++;
             }
+            // Optional: Draw Spalte hinzufügen? Hier zählen wir es einfach nicht als Win/Loss.
         });
 
         const tbody = document.getElementById('leagueTable');
@@ -250,8 +254,13 @@
 
         const list = document.getElementById('leagueMatches');
         list.innerHTML = tournament.matches.map((m, idx) => {
-            if(m.winner) return `<div class="match-card done"><span>${m.p1} vs ${m.p2}</span><span class="winner-text">🏆 ${m.winner}</span></div>`;
-            else return `<div class="match-card"><span>${m.p1} vs ${m.p2}</span><button class="start-match" onclick="playMatch('league', ${idx})">Spielen ▶</button></div>`;
+            if(m.winner === 'draw') {
+                return `<div class="match-card draw"><span>${m.p1} vs ${m.p2}</span><span class="draw-text">🤝 Remis</span></div>`;
+            } else if(m.winner) {
+                return `<div class="match-card done"><span>${m.p1} vs ${m.p2}</span><span class="winner-text">🏆 ${m.winner}</span></div>`;
+            } else {
+                return `<div class="match-card"><span>${m.p1} vs ${m.p2}</span><button class="start-match" onclick="playMatch('league', ${idx})">Spielen ▶</button></div>`;
+            }
         }).join('');
     }
 
@@ -277,8 +286,9 @@
             roundDiv.innerHTML = `<div class="round-title">${title}</div>`;
             round.forEach((match, mIdx) => {
                 let html = `<div class="bracket-match">`;
-                if(match.winner) html += `<div style="opacity:0.5">${match.p1} vs ${match.p2}</div><div class="winner-text">🏆 ${match.winner}</div>`;
-                else {
+                if(match.winner) {
+                    html += `<div style="opacity:0.5">${match.p1} vs ${match.p2}</div><div class="winner-text">🏆 ${match.winner}</div>`;
+                } else {
                     html += `<div>${match.p1||'?'} vs ${match.p2||'?'}</div>`;
                     if(match.p1 && match.p2) html += `<button class="start-match" onclick="playMatch('knockout', ${rIdx}, ${mIdx})">Starten</button>`;
                 }
@@ -312,21 +322,37 @@
     }
 
     function processWin(winner) {
-        if(tournament.mode === 'league') {
-            tournament.matches[tournament.currentMatchIndex].winner = winner;
-        } else if(tournament.mode === 'knockout') {
-            let c = tournament.currentMatchIndex;
-            let round = tournament.rounds[c.r];
-            round[c.m].winner = winner;
-            if(round.every(m => m.winner) && round.length > 1) {
-                let newRound = [];
-                for(let i=0; i<round.length; i+=2) newRound.push({ p1: round[i].winner, p2: round[i+1].winner, winner: null });
-                tournament.rounds.push(newRound);
+        if (winner === 'draw') {
+            // BEI UNENTSCHIEDEN
+            if(tournament.mode === 'league') {
+                // Liga: Unentschieden eintragen, kein Punkt für niemanden
+                tournament.matches[tournament.currentMatchIndex].winner = 'draw';
+            } else {
+                // KO & BestOf: Unentschieden ignoriert man hier meistens
+                // Man muss das Match einfach nochmal spielen.
+                // Wir machen also NICHTS, außer speichern und rendern.
+                // Das Match bleibt offen.
+                alert("Unentschieden! Das Match muss wiederholt werden.");
             }
-        } else if (tournament.mode === 'bestof') {
-            if (winner === tournament.players[0]) tournament.boScores[0]++;
-            else tournament.boScores[1]++;
+        } else {
+            // NORMALER SIEG
+            if(tournament.mode === 'league') {
+                tournament.matches[tournament.currentMatchIndex].winner = winner;
+            } else if(tournament.mode === 'knockout') {
+                let c = tournament.currentMatchIndex;
+                let round = tournament.rounds[c.r];
+                round[c.m].winner = winner;
+                if(round.every(m => m.winner) && round.length > 1) {
+                    let newRound = [];
+                    for(let i=0; i<round.length; i+=2) newRound.push({ p1: round[i].winner, p2: round[i+1].winner, winner: null });
+                    tournament.rounds.push(newRound);
+                }
+            } else if (tournament.mode === 'bestof') {
+                if (winner === tournament.players[0]) tournament.boScores[0]++;
+                else tournament.boScores[1]++;
+            }
         }
+        
         saveState();
         render();
     }
