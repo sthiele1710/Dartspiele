@@ -25,6 +25,7 @@
         padding-bottom: 20px; 
     }
 
+    /* Das Overlay für den Rand */
     #game-border {
         position: fixed;
         top: 0;
@@ -54,7 +55,6 @@
     h1 {margin:15px 0 5px 0; font-size:24px; color: gold;}
     
     #seriesInfo { font-size: 14px; color: #888; margin-bottom: 5px; font-weight: bold; }
-    /* NEU: Rundenanzeige */
     #roundDisplay { font-size: 16px; color: #aaa; margin-bottom: 10px; font-weight: bold; }
 
     #top { display:flex; justify-content:space-between; padding:0 15px; font-size:18px; max-width:440px; margin:auto; }
@@ -88,7 +88,9 @@
 
 <h1>🎯 Domination</h1>
 <div id="seriesInfo"></div>
-<div id="roundDisplay">Runde: 1</div> <div id="top">
+<div id="roundDisplay">Runde: 1</div>
+
+<div id="top">
   <span id="s1" class="p1">Spieler 1: 0</span>
   <span id="s2" class="p2">Spieler 2: 0</span>
 </div>
@@ -136,6 +138,7 @@ let name1, name2;
 if (isTournament) {
     name1 = localStorage.getItem('tournament_p1') || "T-Spieler 1";
     name2 = localStorage.getItem('tournament_p2') || "T-Spieler 2";
+    
     const btn = document.getElementById('homeBtn');
     if(btn) btn.style.display = 'none';
 
@@ -327,50 +330,6 @@ function drawBoard(){
             svg.appendChild(path);
         } else {
             let pData = [{id:1, h:h1}, {id:2, h:h2}].sort((a,b) => b.h - a.h);
-            pData.forEach(p => {
-                if(p.h > 0) {
-                    const r = BULL_R + (BOARD_R - BULL_R) * (p.h / maxVal);
-                    const path = document.createElementNS("http://www.w3.org/2000/svg","path");
-                    path.setAttribute("d",`M0,0 L${r*Math.cos(a1)},${r*Math.sin(a1)} A${r},${r} 0 0,1 ${r*Math.cos(a2)},${r*Math.sin(a2)} Z`);
-                    path.setAttribute("fill", p.id === 1 ? "rgba(255,59,59,0.8)" : "rgba(0,191,255,0.8)");
-                    svg.appendChild(path);
-                }
-            });
-        }
-    });
-
-    const b1 = hits[25][1], b2 = hits[25][2];
-    const maxB = Math.max(3, b1, b2);
-    const bBg = document.createElementNS("http://www.w3.org/2000/svg","circle");
-    bBg.setAttribute("r", BULL_R); bBg.setAttribute("fill", "#2a2a2a"); bBg.setAttribute("stroke","#000"); svg.appendChild(bBg);
-    if(b1 > 0 || b2 > 0) {
-        const rMax = BULL_R * (Math.max(b1, b2) / maxB);
-        const circ = document.createElementNS("http://www.w3.org/2000/svg","circle");
-        circ.setAttribute("r", rMax);
-        circ.setAttribute("fill", b1 === b2 ? "url(#hatch)" : (b1 > b2 ? "rgba(255,59,59,0.9)" : "rgba(0,191,255,0.9)"));
-        svg.appendChild(circ);
-        if(b1 !== b2 && b1 > 0 && b2 > 0) {
-            const rMin = BULL_R * (Math.min(b1, b2) / maxB);
-            const circMin = document.createElementNS("http://www.w3.org/2000/svg","circle");
-            circMin.setAttribute("r", rMin);
-            circMin.setAttribute("fill", b1 < b2 ? "rgba(255,59,59,1)" : "rgba(0,191,255,1)");
-            svg.appendChild(circMin);
-        }
-    }
-
-    order.forEach((n, i) => {
-        const a1 = ((i * 18 + ROTATION_OFFSET) - 90) * Math.PI / 180;
-        const a2 = (((i + 1) * 18 + ROTATION_OFFSET) - 90) * Math.PI / 180;
-        const mid = (a1 + a2) / 2;
-        const h1 = hits[n][1], h2 = hits[n][2];
-        const maxVal = Math.max(3, h1, h2);
-        if(h1 === h2 && h1 > 0) {
-            const rEnd = BULL_R + (BOARD_R - BULL_R) * (h1 / maxVal);
-            const labelR = BULL_R + (rEnd - BULL_R) / 2;
-            drawBadge(svg, labelR * Math.cos(mid), labelR * Math.sin(mid), h1, "#666");
-        } else {
-            let pData = [{id:1, h:h1}, {id:2, h:h2}].sort((a,b) => a.h - b.h);
-            let currentInnerR = BULL_R;
             pData.forEach(p => {
                 if(p.h > 0) {
                     const rEnd = BULL_R + (BOARD_R - BULL_R) * (p.h / maxVal);
