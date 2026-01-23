@@ -34,7 +34,6 @@
     .p1 .p-name { color: #ff3b3b; }
     .p2 .p-name { color: #00bfff; }
     
-    /* NEU: Throw History Display */
     .history-container {
         display: flex; flex-direction: column; gap: 5px; margin: 10px auto; max-width: 400px; padding: 0 10px;
     }
@@ -63,8 +62,9 @@
     #dartboard { width:100vw; max-width:480px; height:auto; display:block; margin:auto; touch-action: none; }
     #winner { font-size:28px; margin:15px 0; font-weight:bold; color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5);}
     #seriesInfo { font-size: 14px; color: #888; margin-top: 5px; font-weight: bold; }
+    /* NEU: Rundenanzeige */
+    #roundDisplay { font-size: 16px; color: #aaa; margin-top: 5px; font-weight: bold; }
 
-    /* Mode Switcher */
     .mode-select { margin-top: 10px; }
     .mode-select select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 5px; font-size: 16px; }
 </style>
@@ -80,6 +80,7 @@
     </select>
 </div>
 <div id="seriesInfo"></div>
+<div id="roundDisplay">Runde: 1</div>
 
 <div class="scoreboard">
     <div id="p1-box" class="player-score p1 active">
@@ -143,6 +144,9 @@ const BULL_R = 38;
 
 const urlParams = new URLSearchParams(window.location.search);
 const isTournament = urlParams.get('tournament') === 'true';
+const startParam = urlParams.get('starter');
+const initialPlayer = startParam ? parseInt(startParam) : 1;
+
 let startScore = 501;
 
 let name1, name2;
@@ -169,22 +173,25 @@ document.getElementById('name2').textContent = name2;
 // --- GAME STATE ---
 let scores = {1: 501, 2: 501};
 let startOfTurnScore = {1: 501, 2: 501};
-let currentPlayer = 1;
+let currentPlayer = initialPlayer;
+let currentRound = 1;
 let throwsLeft = 3;
 let multiplier = 1;
 let gameOver = false;
 let history = []; 
 
-// NEU: Arrays für die Anzeige
-let currentThrows = []; // Speichert Strings wie "T20", "D5"
-let prevThrows = ["-", "-", "-"]; // Speichert die Würfe des Gegners
+let currentThrows = []; 
+let prevThrows = ["-", "-", "-"];
 
 function initGame() {
     if(!isTournament) startScore = parseInt(document.getElementById('startScoreSelect').value);
     
     scores = {1: startScore, 2: startScore};
     startOfTurnScore = {1: startScore, 2: startScore};
-    currentPlayer = 1;
+    currentPlayer = initialPlayer;
+    currentRound = 1;
+    document.getElementById('roundDisplay').textContent = "Runde: 1";
+
     throwsLeft = 3;
     multiplier = 1;
     gameOver = false;
@@ -204,7 +211,8 @@ function snapshot() {
         startOfTurnScore: {...startOfTurnScore},
         currentPlayer, throwsLeft, multiplier, gameOver,
         currentThrows: [...currentThrows],
-        prevThrows: [...prevThrows]
+        prevThrows: [...prevThrows],
+        currentRound
     }));
 }
 
@@ -219,6 +227,8 @@ function undo() {
     gameOver = s.gameOver;
     currentThrows = s.currentThrows;
     prevThrows = s.prevThrows;
+    currentRound = s.currentRound || 1;
+    document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
     updateUI();
 }
 
@@ -229,9 +239,8 @@ function setMulti(m) {
     if(btn) btn.classList.add("active");
 }
 
-// Hilfsfunktion zur Formatierung (z.B. 3, 20 -> "T20")
 function formatThrow(m, n) {
-    if (n === 25) return m === 2 ? "D25" : "25"; // oder DB / B
+    if (n === 25) return m === 2 ? "D25" : "25";
     if (m === 3) return "T" + n;
     if (m === 2) return "D" + n;
     return n.toString();
@@ -241,12 +250,18 @@ function nextTurn() {
     if(gameOver) return;
     snapshot();
     
-    // Aktuelle Würfe in "Letzter" verschieben
     prevThrows = [...currentThrows];
-    while(prevThrows.length < 3) prevThrows.push("-"); // Auffüllen
-    currentThrows = []; // Reset
+    while(prevThrows.length < 3) prevThrows.push("-"); 
+    currentThrows = [];
 
-    currentPlayer = currentPlayer === 1 ? 2 : 1;
+    // Spielerwechsel
+    let nextP = currentPlayer === 1 ? 2 : 1;
+    if (nextP === initialPlayer) {
+        currentRound++;
+        document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
+    }
+    currentPlayer = nextP;
+
     throwsLeft = 3;
     startOfTurnScore[currentPlayer] = scores[currentPlayer];
     
@@ -258,30 +273,20 @@ function nextTurn() {
 function throwDart(num) {
     if(gameOver) return;
     if(multiplier === 3 && num === 25) return;
-    
     if(navigator.vibrate) navigator.vibrate(30);
     
     snapshot();
     
     const points = num * multiplier;
     let newScore = scores[currentPlayer] - points;
-    
-    // Wurf speichern für Anzeige
     currentThrows.push(formatThrow(multiplier, num));
 
-    // REGELN
     if (newScore === 0) {
-        // GEWONNEN (muss Double Out sein? Hier simplified Straight Out)
         scores[currentPlayer] = 0;
         checkWin();
-    } else if (newScore < 0 || newScore === 1) { // 1 Rest ist bei Double Out auch Bust, hier erstmal < 0
-        // BUST
-        // Letzter Wurf wird überschrieben oder ergänzt? Wir lassen ihn stehen.
+    } else if (newScore < 0 || newScore === 1) { 
         scores[currentPlayer] = startOfTurnScore[currentPlayer]; 
-        throwsLeft = 1; // Erzwingt Wechsel beim nächsten Step
-        
-        // Optional: Bust im Display anzeigen?
-        // currentThrows[currentThrows.length-1] += " (BUST)";
+        throwsLeft = 1; 
     } else {
         scores[currentPlayer] = newScore;
     }
@@ -305,27 +310,28 @@ function checkWin() {
     document.getElementById('game-border').className = "winner-glow";
     confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
 
+    saveWin(winnerName);
+
     if(isTournament) {
         localStorage.setItem('tournament_winner_name', winnerName);
         setTimeout(() => { window.location.href = 'tournament.html'; }, 3000);
         return;
     }
-
-    let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
-    if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0 };
-    if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0 };
-    stats[winnerName].dart = (stats[winnerName].dart || 0) + 1;
-    localStorage.setItem('allTimeStats', JSON.stringify(stats));
-    
     updateUI();
 }
 
+function saveWin(winnerName) {
+    let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
+    if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0, x01: 0 };
+    if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0, x01: 0 };
+    stats[winnerName].x01 = (stats[winnerName].x01 || 0) + 1;
+    localStorage.setItem('allTimeStats', JSON.stringify(stats));
+}
+
 function updateUI() {
-    // Scores
     document.getElementById("score1").textContent = scores[1];
     document.getElementById("score2").textContent = scores[2];
     
-    // Active Player Highlight
     const p1Box = document.getElementById("p1-box");
     const p2Box = document.getElementById("p2-box");
     const border = document.getElementById('game-border');
@@ -338,12 +344,9 @@ function updateUI() {
         if(!gameOver) border.className = "turn-p2";
     }
     
-    // UPDATE THROW DISPLAY
-    // Vorherige (Gegner)
     for(let i=0; i<3; i++) {
         document.getElementById(`prev${i+1}`).textContent = prevThrows[i] || "-";
     }
-    // Aktuelle
     for(let i=0; i<3; i++) {
         let val = currentThrows[i];
         let el = document.getElementById(`curr${i+1}`);
@@ -352,7 +355,6 @@ function updateUI() {
     }
 }
 
-// --- BOARD DRAWING ---
 function drawBoard(){
     const svg = document.getElementById("dartboard");
     const defs = svg.querySelector("defs"); svg.innerHTML = ""; svg.appendChild(defs);
