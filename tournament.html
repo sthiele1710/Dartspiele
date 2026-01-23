@@ -190,7 +190,6 @@
         saveState(); render();
     }
 
-    // --- BEST OF ---
     function initBestOf() {
         tournament.boTotal = parseInt(document.getElementById('playerCount').value);
         tournament.boScores = [0, 0];
@@ -217,12 +216,14 @@
             status.innerHTML = `<span style="color:#00bfff; font-weight:bold;">🏆 ${tournament.players[1]} gewinnt die Serie!</span>`;
             btn.style.display = 'none';
         } else {
-            status.innerText = `Nächstes Spiel bereit...`;
+            // HIER LOGIK FÜR START SPIELER
+            let played = tournament.boScores[0] + tournament.boScores[1];
+            let starterName = (played % 2 === 0) ? tournament.players[0] : tournament.players[1];
+            status.innerText = `Spiel ${played + 1}: ${starterName} beginnt!`;
             btn.style.display = 'block';
         }
     }
 
-    // --- LIGA ---
     function initLeague() {
         tournament.matches = [];
         for(let i=0; i<tournament.players.length; i++) {
@@ -245,7 +246,6 @@
                 let loser = (m.winner === m.p1) ? m.p2 : m.p1;
                 stats[loser].l++;
             }
-            // Optional: Draw Spalte hinzufügen? Hier zählen wir es einfach nicht als Win/Loss.
         });
 
         const tbody = document.getElementById('leagueTable');
@@ -264,7 +264,6 @@
         }).join('');
     }
 
-    // --- KNOCKOUT ---
     function initKnockout() {
         tournament.rounds = [];
         let firstRound = [];
@@ -302,6 +301,7 @@
     function playMatch(type, idx1, idx2) {
         let p1, p2;
         let queryParams = "";
+        let starter = 1; // Default Player 1
 
         if(type === 'league') {
             p1 = tournament.matches[idx1].p1; p2 = tournament.matches[idx1].p2;
@@ -312,8 +312,14 @@
         } else if(type === 'bestof') {
             p1 = tournament.players[0]; p2 = tournament.players[1];
             let target = Math.ceil(tournament.boTotal / 2);
+            // BERECHNUNG WER ANFÄNGT (gerade Summe = P1, ungerade = P2)
+            let played = tournament.boScores[0] + tournament.boScores[1];
+            starter = (played % 2 === 0) ? 1 : 2;
             queryParams = `&s1=${tournament.boScores[0]}&s2=${tournament.boScores[1]}&target=${target}`;
         }
+        
+        // Starter übergeben
+        queryParams += `&starter=${starter}`;
 
         localStorage.setItem('tournament_p1', p1);
         localStorage.setItem('tournament_p2', p2);
@@ -323,19 +329,12 @@
 
     function processWin(winner) {
         if (winner === 'draw') {
-            // BEI UNENTSCHIEDEN
             if(tournament.mode === 'league') {
-                // Liga: Unentschieden eintragen, kein Punkt für niemanden
                 tournament.matches[tournament.currentMatchIndex].winner = 'draw';
             } else {
-                // KO & BestOf: Unentschieden ignoriert man hier meistens
-                // Man muss das Match einfach nochmal spielen.
-                // Wir machen also NICHTS, außer speichern und rendern.
-                // Das Match bleibt offen.
                 alert("Unentschieden! Das Match muss wiederholt werden.");
             }
         } else {
-            // NORMALER SIEG
             if(tournament.mode === 'league') {
                 tournament.matches[tournament.currentMatchIndex].winner = winner;
             } else if(tournament.mode === 'knockout') {
