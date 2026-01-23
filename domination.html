@@ -89,7 +89,9 @@
 <div id="game-border"></div>
 
 <h1>🎯 Domination</h1>
-<div id="seriesInfo"></div> <div id="top">
+<div id="seriesInfo"></div>
+
+<div id="top">
   <span id="s1" class="p1">Spieler 1: 0</span>
   <span id="s2" class="p2">Spieler 2: 0</span>
 </div>
@@ -235,6 +237,9 @@ function checkWin(){
         document.getElementById('game-border').className = "winner-glow";
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
 
+        // HIER WURDE GEÄNDERT: Stats speichern AUCH im Turnier!
+        saveWin(winnerName);
+
         // --- TURNIER LOGIK (NEU) ---
         if(isTournament) {
             localStorage.setItem('tournament_winner_name', winnerName);
@@ -243,13 +248,16 @@ function checkWin(){
             }, 3000);
             return; // Beenden, damit es nicht in die normale Statistik fließt
         }
-
-        let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
-        if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0 };
-        if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0 };
-        stats[winnerName].dart = (stats[winnerName].dart || 0) + 1;
-        localStorage.setItem('allTimeStats', JSON.stringify(stats));
     }
+}
+
+// NEUE Funktion zum Speichern (zentralisiert)
+function saveWin(winnerName) {
+    let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
+    if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0, x01: 0 };
+    if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0, x01: 0 };
+    stats[winnerName].dart = (stats[winnerName].dart || 0) + 1;
+    localStorage.setItem('allTimeStats', JSON.stringify(stats));
 }
 
 function updateUI(){
@@ -370,6 +378,25 @@ function drawBoard(){
         click.setAttribute("fill","transparent"); click.style.cursor="pointer";
         click.onclick = () => throwDart(n); svg.appendChild(click);
     });
+
+    const b1 = hits[25][1], b2 = hits[25][2];
+    const maxB = Math.max(3, b1, b2);
+    const bBg = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    bBg.setAttribute("r", BULL_R); bBg.setAttribute("fill", "#2a2a2a"); bBg.setAttribute("stroke","#000"); svg.appendChild(bBg);
+    if(b1 > 0 || b2 > 0) {
+        const rMax = BULL_R * (Math.max(b1, b2) / maxB);
+        const circ = document.createElementNS("http://www.w3.org/2000/svg","circle");
+        circ.setAttribute("r", rMax);
+        circ.setAttribute("fill", b1 === b2 ? "url(#hatch)" : (b1 > b2 ? "rgba(255,59,59,0.9)" : "rgba(0,191,255,0.9)"));
+        svg.appendChild(circ);
+        if(b1 !== b2 && b1 > 0 && b2 > 0) {
+            const rMin = BULL_R * (Math.min(b1, b2) / maxB);
+            const circMin = document.createElementNS("http://www.w3.org/2000/svg","circle");
+            circMin.setAttribute("r", rMin);
+            circMin.setAttribute("fill", b1 < b2 ? "rgba(255,59,59,1)" : "rgba(0,191,255,1)");
+            svg.appendChild(circMin);
+        }
+    }
     const bClick = document.createElementNS("http://www.w3.org/2000/svg","circle");
     bClick.setAttribute("r", BULL_R); bClick.setAttribute("fill","transparent");
     bClick.style.cursor="pointer"; bClick.onclick = () => throwDart(25);
