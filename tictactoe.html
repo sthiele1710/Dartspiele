@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -55,6 +54,11 @@
     #game-border.winner-glow {
         box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.7);
         border: 6px solid gold;
+    }
+    /* NEU: Unentschieden Glow (Grau/Weiß) */
+    #game-border.draw-glow {
+        box-shadow: inset 0 0 80px rgba(200, 200, 200, 0.5);
+        border: 6px solid #ccc;
     }
 
     /* --- TEXTE & UI --- */
@@ -127,7 +131,9 @@
 <div id="game-border"></div>
 
 <h1>🎯 Tic Tac Toe</h1>
-<div id="seriesInfo"></div> <div id="status">
+<div id="seriesInfo"></div>
+
+<div id="status">
     <span id="p1Label" class="player1">Spieler 1 (X)</span>
     <span id="p2Label" class="player2">Spieler 2 (O)</span>
 </div>
@@ -155,7 +161,7 @@
 <button id="passBtn" onclick="passTurn()">⏭️ Zug beenden / Verfehlt</button>
 
 <script>
-// --- TURNIER LOGIK (NEU) ---
+// --- TURNIER LOGIK ---
 const urlParams = new URLSearchParams(window.location.search);
 const isTournament = urlParams.get('tournament') === 'true';
 
@@ -219,7 +225,7 @@ function undo() {
     p1=s.p1; p2=s.p2; currentPlayer=s.currentPlayer; throwsLeft=s.throwsLeft;
     multiplier=s.multiplier; gameOver=s.gameOver; winningCombo=s.winningCombo;
     
-    document.getElementById("winner").textContent = gameOver ? `🏆 GEWINNER!` : "";
+    document.getElementById("winner").textContent = gameOver ? (winningCombo.length > 0 ? `🏆 GEWINNER!` : "🤝 UNENTSCHIEDEN") : "";
     updateUI();
 }
 
@@ -245,7 +251,12 @@ function updateUI() {
     // RAHMEN UPDATE
     const border = document.getElementById("game-border");
     if (gameOver) {
-        border.className = "winner-glow";
+        // Prüfen ob Sieg oder Unentschieden
+        if (winningCombo.length > 0) {
+            border.className = "winner-glow";
+        } else {
+            border.className = "draw-glow"; // Neue graue Klasse
+        }
     } else {
         border.className = (currentPlayer === 1) ? "turn-p1" : "turn-p2";
     }
@@ -312,29 +323,44 @@ function checkWin() {
     const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
     let winner = null;
 
+    // 1. Prüfen auf Sieg
     for (const w of wins) {
         if (w.every(i => p1[i] >= 4)) { winningCombo = w; winner = name1; }
         else if (w.every(i => p2[i] >= 4)) { winningCombo = w; winner = name2; }
     }
 
+    // 2. Wenn Sieg
     if (winner) {
         gameOver = true;
-        // Text in das Winner-Div schreiben
         document.getElementById("winner").textContent = `🏆 ${winner} GEWINNT!`;
-        
-        // Konfetti & Glow
+        document.getElementById("winner").style.color = "#00ff00";
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
 
-        // --- TURNIER LOGIK (NEU) ---
         if (isTournament) {
             localStorage.setItem('tournament_winner_name', winner);
-            setTimeout(() => {
-                window.location.href = "tournament.html";
-            }, 3000);
-            return; // Beenden, damit es nicht in die normale Statistik fließt
+            setTimeout(() => { window.location.href = "tournament.html"; }, 3000);
+            return; 
         }
-        
         saveWin(winner);
+        return;
+    }
+
+    // 3. Wenn KEIN Sieg, prüfen auf Unentschieden
+    // Ein Unentschieden ist, wenn ALLE Felder geschlossen sind (entweder von P1 oder P2)
+    const allClosed = fieldNumbers.every((_, i) => p1[i] >= 4 || p2[i] >= 4);
+    
+    if (allClosed) {
+        gameOver = true;
+        document.getElementById("winner").textContent = "🤝 UNENTSCHIEDEN!";
+        document.getElementById("winner").style.color = "#cccccc"; // Grau/Weiß
+        
+        // Kein Konfetti bei Unentschieden, nur Redirect im Turnier
+        if (isTournament) {
+            localStorage.setItem('tournament_winner_name', 'draw'); // Spezielles Keyword
+            setTimeout(() => { window.location.href = "tournament.html"; }, 3000);
+            return;
+        }
+        // Keine Stats speichern bei Unentschieden
     }
 }
 
