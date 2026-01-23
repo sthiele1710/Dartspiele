@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Turnier Modus</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+    body { font-family: system-ui, sans-serif; background: #1a1a1a; color: white; margin: 0; padding: 20px; text-align: center; padding-bottom: 50px;}
+    h1 { color: gold; margin-bottom: 20px; }
+    h2 { color: #00bfff; margin-top: 30px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+    
+    input, select { padding: 12px; margin: 8px 0; width: 100%; box-sizing: border-box; border-radius: 8px; border: 1px solid #444; background: #333; color: white; font-size: 16px; text-align: center;}
+    button { padding: 15px; margin: 10px 0; width: 100%; border-radius: 8px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; background: #444; color: white; }
+    button.primary { background: gold; color: black; margin-top: 20px;}
+    button.start-match { background: #2e7d32; margin: 5px 0; padding: 10px; font-size: 14px;}
+    
+    .hidden { display: none; }
+    .setup-step { max-width: 400px; margin: auto; }
+    
+    /* Liga Tabelle */
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; border-bottom: 1px solid #333; text-align: left; }
+    th { color: gold; }
+    .match-card { background: #2a2a2a; padding: 15px; margin-bottom: 10px; border-radius: 10px; border-left: 5px solid #555; display: flex; justify-content: space-between; align-items: center; }
+    .match-card.done { border-left-color: gold; opacity: 0.6; }
+    .winner-text { color: gold; font-weight: bold; font-size: 12px;}
+
+    /* K.O. Baum */
+    .bracket { display: flex; flex-direction: column; gap: 20px; overflow-x: auto; padding: 10px; }
+    .round { border: 1px solid #444; padding: 10px; border-radius: 10px; background: #222; }
+    .round-title { font-weight: bold; color: #00bfff; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; font-size: 12px;}
+    .bracket-match { background: #333; padding: 10px; margin: 10px 0; border-radius: 6px; text-align: center; }
+</style>
+</head>
+<body>
+
+<h1>🏆 WG Turnier</h1>
+
+<div id="setup" class="setup-step">
+    <h3>1. Spiel wählen</h3>
+    <select id="gameSelect">
+        <option value="domination.html">🎯 Domination</option>
+        <option value="tictactoe.html">❌ Tic Tac Toe</option>
+    </select>
+
+    <h3>2. Modus</h3>
+    <select id="modeSelect" onchange="togglePlayerCount()">
+        <option value="league">Jeder gegen Jeden (Liga)</option>
+        <option value="knockout">K.O. System (Turnierbaum)</option>
+    </select>
+
+    <h3>3. Spieleranzahl</h3>
+    <select id="playerCount" onchange="generateNameInputs()">
+        <option value="2">2 Spieler</option>
+        <option value="3">3 Spieler</option>
+        <option value="4">4 Spieler</option>
+        <option value="5">5 Spieler</option>
+        <option value="6">6 Spieler</option>
+        <option value="8">8 Spieler</option>
+    </select>
+    
+    <div id="nameInputs" style="margin-top:20px;"></div>
+
+    <button class="primary" onclick="startTournament()">Starten</button>
+    <button onclick="location.href='index.html'">🏠 Home</button>
+</div>
+
+<div id="knockoutView" class="hidden">
+    <div id="bracketContainer" class="bracket"></div>
+    <button onclick="resetTournament()" style="background:#555; margin-top:30px;">Turnier beenden</button>
+</div>
+
+<div id="leagueView" class="hidden">
+    <h2>Tabelle</h2>
+    <table>
+        <thead><tr><th>Name</th><th>S</th><th>N</th></tr></thead>
+        <tbody id="leagueTable"></tbody>
+    </table>
+
+    <h2>Spiele</h2>
+    <div id="leagueMatches"></div>
+    <button onclick="resetTournament()" style="background:#555; margin-top:30px;">Turnier beenden</button>
+</div>
+
+<script>
+    function togglePlayerCount() {
+        const mode = document.getElementById('modeSelect').value;
+        const sel = document.getElementById('playerCount');
+        sel.innerHTML = "";
+        let opts = mode === 'knockout' ? [2, 4, 8] : [2,3,4,5,6,7,8];
+        opts.forEach(n => {
+            let opt = document.createElement('option');
+            opt.value = n; opt.innerText = n + " Spieler";
+            sel.appendChild(opt);
+        });
+        generateNameInputs();
+    }
+
+    function generateNameInputs() {
+        const count = parseInt(document.getElementById('playerCount').value);
+        const container = document.getElementById('nameInputs');
+        container.innerHTML = "";
+        for(let i=1; i<=count; i++) {
+            container.innerHTML += `<input type="text" id="p${i}" placeholder="Name Spieler ${i}" value="Spieler ${i}">`;
+        }
+    }
+
+    let tournament = { active: false, gameFile: '', mode: '', players: [], matches: [], rounds: [], currentMatchIndex: null };
+
+    function startTournament() {
+        tournament.active = true;
+        tournament.gameFile = document.getElementById('gameSelect').value;
+        tournament.mode = document.getElementById('modeSelect').value;
+        const count = parseInt(document.getElementById('playerCount').value);
+        tournament.players = [];
+        for(let i=1; i<=count; i++) tournament.players.push(document.getElementById(`p${i}`).value);
+
+        if(tournament.mode === 'league') initLeague();
+        else initKnockout();
+
+        saveState(); render();
+    }
+
+    function initLeague() {
+        tournament.matches = [];
+        for(let i=0; i<tournament.players.length; i++) {
+            for(let j=i+1; j<tournament.players.length; j++) {
+                tournament.matches.push({ p1: tournament.players[i], p2: tournament.players[j], winner: null });
+            }
+        }
+        tournament.matches.sort(() => Math.random() - 0.5);
+    }
+
+    function renderLeague() {
+        document.getElementById('setup').classList.add('hidden');
+        document.getElementById('leagueView').classList.remove('hidden');
+
+        let stats = {};
+        tournament.players.forEach(p => stats[p] = {w:0, l:0});
+        tournament.matches.forEach(m => {
+            if(m.winner) {
+                stats[m.winner].w++;
+                stats[(m.winner === m.p1) ? m.p2 : m.p1].l++;
+            }
+        });
+
+        const tbody = document.getElementById('leagueTable');
+        tbody.innerHTML = Object.entries(stats).sort((a,b) => b[1].w - a[1].w)
+            .map(([name, s]) => `<tr><td>${name}</td><td>${s.w}</td><td>${s.l}</td></tr>`).join('');
+
+        const list = document.getElementById('leagueMatches');
+        list.innerHTML = tournament.matches.map((m, idx) => {
+            if(m.winner) return `<div class="match-card done"><span>${m.p1} vs ${m.p2}</span><span class="winner-text">🏆 ${m.winner}</span></div>`;
+            else return `<div class="match-card"><span>${m.p1} vs ${m.p2}</span><button class="start-match" onclick="playMatch('league', ${idx})">Spielen ▶</button></div>`;
+        }).join('');
+    }
+
+    function initKnockout() {
+        tournament.rounds = [];
+        let firstRound = [];
+        let shuffled = [...tournament.players].sort(() => Math.random() - 0.5);
+        for(let i=0; i<shuffled.length; i+=2) firstRound.push({ p1: shuffled[i], p2: shuffled[i+1], winner: null });
+        tournament.rounds.push(firstRound);
+    }
+
+    function renderKnockout() {
+        document.getElementById('setup').classList.add('hidden');
+        document.getElementById('knockoutView').classList.remove('hidden');
+        const container = document.getElementById('bracketContainer');
+        container.innerHTML = "";
+
+        tournament.rounds.forEach((round, rIdx) => {
+            let roundDiv = document.createElement('div');
+            roundDiv.className = 'round';
+            let title = (round.length===1) ? "FINALE" : `Runde ${rIdx+1}`;
+            roundDiv.innerHTML = `<div class="round-title">${title}</div>`;
+            round.forEach((match, mIdx) => {
+                let html = `<div class="bracket-match">`;
+                if(match.winner) html += `<div style="opacity:0.5">${match.p1} vs ${match.p2}</div><div class="winner-text">🏆 ${match.winner}</div>`;
+                else {
+                    html += `<div>${match.p1||'?'} vs ${match.p2||'?'}</div>`;
+                    if(match.p1 && match.p2) html += `<button class="start-match" onclick="playMatch('knockout', ${rIdx}, ${mIdx})">Starten</button>`;
+                }
+                html += `</div>`;
+                roundDiv.innerHTML += html;
+            });
+            container.appendChild(roundDiv);
+        });
+    }
+
+    function playMatch(type, idx1, idx2) {
+        let p1, p2;
+        if(type === 'league') {
+            p1 = tournament.matches[idx1].p1; p2 = tournament.matches[idx1].p2;
+            tournament.currentMatchIndex = idx1;
+        } else {
+            p1 = tournament.rounds[idx1][idx2].p1; p2 = tournament.rounds[idx1][idx2].p2;
+            tournament.currentMatchIndex = {r: idx1, m: idx2};
+        }
+        localStorage.setItem('tournament_p1', p1);
+        localStorage.setItem('tournament_p2', p2);
+        saveState();
+        window.location.href = `${tournament.gameFile}?tournament=true`;
+    }
+
+    function saveState() { localStorage.setItem('wg_tournament_data', JSON.stringify(tournament)); }
+    function loadState() {
+        const data = localStorage.getItem('wg_tournament_data');
+        if(data) { tournament = JSON.parse(data); if(tournament.active) render(); }
+        else { togglePlayerCount(); }
+    }
+    function render() { if(tournament.mode === 'league') renderLeague(); else renderKnockout(); }
+    function resetTournament() { if(confirm("Beenden?")) { localStorage.removeItem('wg_tournament_data'); location.reload(); } }
+
+    window.onload = function() {
+        loadState();
+        const lastWinner = localStorage.getItem('tournament_winner_name');
+        if(lastWinner && tournament.active) {
+            localStorage.removeItem('tournament_winner_name');
+            if(tournament.mode === 'league') {
+                tournament.matches[tournament.currentMatchIndex].winner = lastWinner;
+            } else {
+                let c = tournament.currentMatchIndex;
+                let round = tournament.rounds[c.r];
+                round[c.m].winner = lastWinner;
+                if(round.every(m => m.winner) && round.length > 1) {
+                    let newRound = [];
+                    for(let i=0; i<round.length; i+=2) newRound.push({ p1: round[i].winner, p2: round[i+1].winner, winner: null });
+                    tournament.rounds.push(newRound);
+                }
+            }
+            saveState(); render();
+        }
+    };
+</script>
+</body>
+</html>
