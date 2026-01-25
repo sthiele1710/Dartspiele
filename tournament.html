@@ -50,8 +50,8 @@
 <div id="setup" class="setup-step">
     <h3>1. Spiel wählen</h3>
     <select id="gameSelect">
-        <option value="domination.html">🎯 Domination</option>
-        <option value="x01.html">💯 301 / 501</option>
+        <option value="x01.html">💯 X01 (501 / 301)</option>
+        <option value="cricket.html">🦗 Cricket</option> <option value="domination.html">🎯 Domination</option>
         <option value="tictactoe.html">❌ Tic Tac Toe</option>
     </select>
 
@@ -216,7 +216,7 @@
             status.innerHTML = `<span style="color:#00bfff; font-weight:bold;">🏆 ${tournament.players[1]} gewinnt die Serie!</span>`;
             btn.style.display = 'none';
         } else {
-            // HIER LOGIK FÜR START SPIELER
+            // Logik für abwechselnden Startspieler
             let played = tournament.boScores[0] + tournament.boScores[1];
             let starterName = (played % 2 === 0) ? tournament.players[0] : tournament.players[1];
             status.innerText = `Spiel ${played + 1}: ${starterName} beginnt!`;
@@ -322,7 +322,7 @@
             queryParams = `&s1=${tournament.boScores[0]}&s2=${tournament.boScores[1]}&target=${target}&starter=${starter}`;
         }
         
-        // Starter übergeben
+        // Starter übergeben (auch für Cricket relevant)
         queryParams += `&starter=${starter}`;
 
         localStorage.setItem('tournament_p1', p1);
