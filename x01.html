@@ -43,9 +43,10 @@
         text-shadow: 0 0 5px rgba(0,255,0,0.3);
     }
 
-    /* NEU: Kleine Wurfanzeige direkt im Spielerfeld */
+    /* Kleine Wurfanzeige direkt im Spielerfeld */
     .mini-throws {
         display: flex; justify-content: center; gap: 4px; margin-top: 8px; min-height: 24px;
+        flex-wrap: wrap;
     }
     .throw-tag {
         font-size: 13px; font-weight: bold; color: gold; background: #222; 
@@ -196,7 +197,8 @@ let multiplier = 1;
 let gameOver = false;
 let history = []; 
 
-let currentThrows = []; 
+// NEU: Speichert Würfe für BEIDE Spieler getrennt
+let roundThrows = { 1: [], 2: [] }; 
 
 function initGame() {
     if(!isTournament) startScore = parseInt(document.getElementById('startScoreSelect').value);
@@ -213,7 +215,7 @@ function initGame() {
     multiplier = 1;
     gameOver = false;
     history = [];
-    currentThrows = [];
+    roundThrows = { 1: [], 2: [] }; // Reset
     
     document.getElementById("winner").textContent = "";
     setMulti(1);
@@ -227,7 +229,7 @@ function snapshot() {
         startOfTurnScore: {...startOfTurnScore},
         stats: JSON.parse(JSON.stringify(stats)),
         currentPlayer, throwsLeft, multiplier, gameOver,
-        currentThrows: [...currentThrows],
+        roundThrows: JSON.parse(JSON.stringify(roundThrows)),
         currentRound
     }));
 }
@@ -242,7 +244,7 @@ function undo() {
     throwsLeft = s.throwsLeft;
     multiplier = s.multiplier;
     gameOver = s.gameOver;
-    currentThrows = s.currentThrows;
+    roundThrows = s.roundThrows;
     currentRound = s.currentRound || 1;
     document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
     updateUI();
@@ -274,14 +276,18 @@ function nextTurn() {
     if(gameOver) return;
     snapshot();
     
-    currentThrows = []; // Reset throws display
-
+    // Spielerwechsel
     let nextP = currentPlayer === 1 ? 2 : 1;
     if (nextP === initialPlayer) {
         currentRound++;
         document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
     }
+    
     currentPlayer = nextP;
+    
+    // WICHTIG: Hier löschen wir nur die Würfe des Spielers, der JETZT dran ist
+    // damit er Platz für neue hat. Die vom Gegner bleiben stehen.
+    roundThrows[currentPlayer] = [];
 
     throwsLeft = 3;
     startOfTurnScore[currentPlayer] = scores[currentPlayer];
@@ -300,7 +306,9 @@ function throwDart(num) {
     
     const points = num * multiplier;
     let newScore = scores[currentPlayer] - points;
-    currentThrows.push(formatThrow(multiplier, num));
+    
+    // Wurf speichern
+    roundThrows[currentPlayer].push(formatThrow(multiplier, num));
 
     speakScore(points.toString());
 
@@ -376,14 +384,20 @@ function updateUI() {
     document.getElementById('throws1').innerHTML = "";
     document.getElementById('throws2').innerHTML = "";
 
-    // Würfe rendern (nur für den aktiven Spieler sichtbar machen)
-    const activeThrowsContainer = currentPlayer === 1 ? document.getElementById('throws1') : document.getElementById('throws2');
-    
-    currentThrows.forEach(t => {
+    // Würfe rendern für P1
+    roundThrows[1].forEach(t => {
         let tag = document.createElement("span");
         tag.className = "throw-tag";
         tag.textContent = t;
-        activeThrowsContainer.appendChild(tag);
+        document.getElementById('throws1').appendChild(tag);
+    });
+
+    // Würfe rendern für P2
+    roundThrows[2].forEach(t => {
+        let tag = document.createElement("span");
+        tag.className = "throw-tag";
+        tag.textContent = t;
+        document.getElementById('throws2').appendChild(tag);
     });
 
     if(currentPlayer === 1) {
