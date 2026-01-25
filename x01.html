@@ -26,26 +26,36 @@
     #game-border.winner-glow { box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.6); border: 6px solid gold; }
 
     /* Scoreboard */
-    .scoreboard { display: flex; justify-content: space-around; margin: 10px 0; align-items: flex-start; }
-    .player-score { display: flex; flex-direction: column; width: 45%; padding: 10px; border-radius: 10px; transition: 0.3s; position: relative; }
-    .player-score.active { background: #333; transform: scale(1.05); border: 2px solid gold; z-index: 10; }
+    .scoreboard { display: flex; justify-content: space-around; margin: 5px 0 10px 0; align-items: flex-start; }
+    .player-score { display: flex; flex-direction: column; width: 45%; padding: 8px 5px; border-radius: 10px; transition: 0.3s; position: relative; }
+    .player-score.active { background: #333; transform: scale(1.02); border: 2px solid gold; z-index: 10; }
     
-    .p-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
-    .p-points { font-size: 48px; font-weight: bold; line-height: 1; }
-    .p1 .p-name { color: #ff3b3b; }
-    .p2 .p-name { color: #00bfff; }
+    .p-name { font-size: 18px; font-weight: bold; margin-bottom: 2px; }
     
-    .avg-display { font-size: 12px; color: #888; margin-top: 2px; }
+    /* PUNKTE und AVERAGE enger zusammen */
+    .p-points { 
+        font-size: 52px; /* Etwas größer */
+        font-weight: bold; 
+        line-height: 0.9; 
+        margin-bottom: 0px; /* Kein Abstand nach unten */
+    }
+    .avg-display { 
+        font-size: 13px; 
+        color: #aaa; 
+        margin-top: 2px; /* Minimaler Abstand nach oben zur Punktzahl */
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
 
     /* Checkout Hinweis */
     .checkout-hint { 
-        font-size: 14px; color: #00ff00; font-weight: bold; margin-top: 5px; min-height: 18px; 
-        text-shadow: 0 0 5px rgba(0,255,0,0.3);
+        font-size: 14px; color: #00ff00; font-weight: bold; min-height: 18px; 
+        text-shadow: 0 0 5px rgba(0,255,0,0.3); margin-bottom: 2px;
     }
 
-    /* Kleine Wurfanzeige direkt im Spielerfeld */
+    /* Kleine Wurfanzeige */
     .mini-throws {
-        display: flex; justify-content: center; gap: 4px; margin-top: 8px; min-height: 24px;
+        display: flex; justify-content: center; gap: 4px; margin-top: 4px; min-height: 24px;
         flex-wrap: wrap;
     }
     .throw-tag {
@@ -54,21 +64,24 @@
     }
 
     /* Controls */
-    #controls { max-width:440px; margin:auto; padding: 0 10px; margin-top: 10px; }
+    #controls { max-width:440px; margin:auto; padding: 0 10px; margin-top: 5px; }
     .btn-row { display:flex; justify-content:center; gap:6px; margin-bottom:8px; }
     button { padding:12px; font-size:14px; border-radius:6px; border:none; cursor:pointer; flex:1; background: #444; color: white; transition: 0.2s; user-select: none; }
     button.active { background: gold; color: black; font-weight:bold; transform: scale(1.05);}
     button.func { background: #555; }
     
-    #next-turn-container { max-width:440px; margin: 10px auto; padding: 0 10px; }
+    #next-turn-container { max-width:440px; margin: 5px auto; padding: 0 10px; }
     button.next-turn { background: #2e7d32; color: white; width: 100%; font-weight: bold; font-size: 16px; border: 1px solid #4caf50; padding: 15px; border-radius: 8px;}
     
     #dartboard { width:100vw; max-width:480px; height:auto; display:block; margin:auto; touch-action: none; }
     #winner { font-size:28px; margin:15px 0; font-weight:bold; color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5);}
-    #seriesInfo { font-size: 14px; color: #888; margin-top: 5px; font-weight: bold; }
-    #roundDisplay { font-size: 16px; color: #aaa; margin-top: 5px; font-weight: bold; }
+    
+    /* Header Elemente enger zusammen */
+    h1 { margin: 10px 0 2px 0; color: gold; font-size: 20px; position: relative; z-index: 1; }
+    #seriesInfo { font-size: 13px; color: #888; margin-bottom: 2px; font-weight: bold; }
+    #roundDisplay { font-size: 14px; color: #aaa; margin-bottom: 5px; font-weight: bold; }
 
-    .mode-select { margin-top: 10px; }
+    .mode-select { margin-top: 5px; margin-bottom: 5px; }
     .mode-select select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 5px; font-size: 16px; }
 </style>
 </head>
@@ -82,22 +95,27 @@
         <option value="501" selected>501</option>
     </select>
 </div>
-<div id="seriesInfo"></div>
+
+<h1 id="mainTitle">🎯 X01 Darts</h1> <div id="seriesInfo"></div>
 <div id="roundDisplay">Runde: 1</div>
 
 <div class="scoreboard">
     <div id="p1-box" class="player-score p1 active">
         <div class="p-name" id="name1">Spieler 1</div>
+        
         <div class="p-points" id="score1">501</div>
-        <div class="checkout-hint" id="checkout1"></div>
         <div class="avg-display" id="avg1">Ø 0.0</div>
+        
+        <div class="checkout-hint" id="checkout1"></div>
         <div class="mini-throws" id="throws1"></div>
     </div>
     <div id="p2-box" class="player-score p2">
         <div class="p-name" id="name2">Spieler 2</div>
+        
         <div class="p-points" id="score2">501</div>
-        <div class="checkout-hint" id="checkout2"></div>
         <div class="avg-display" id="avg2">Ø 0.0</div>
+        
+        <div class="checkout-hint" id="checkout2"></div>
         <div class="mini-throws" id="throws2"></div>
     </div>
 </div>
@@ -132,7 +150,7 @@ const ROTATION_OFFSET = -9;
 const BOARD_R = 180;
 const BULL_R = 38;
 
-// Checkout Tabelle (Vereinfacht)
+// Checkout Tabelle
 const checkouts = {
     170: "T20 T20 BULL", 167: "T20 T19 BULL", 164: "T20 T18 BULL", 161: "T20 T17 BULL", 160: "T20 T20 D20",
     158: "T20 T20 D19", 157: "T20 T19 D20", 156: "T20 T20 D18", 155: "T20 T19 D19", 154: "T20 T18 D20",
@@ -170,6 +188,7 @@ if (isTournament) {
     name2 = localStorage.getItem('tournament_p2') || "T2";
     document.getElementById('homeBtn').style.display = 'none';
     document.getElementById('modeContainer').style.display = 'none';
+    document.getElementById('mainTitle').style.display = 'none'; // Überschrift im Turnier ausblenden um Platz zu sparen
     
     let s1 = urlParams.get('s1');
     let s2 = urlParams.get('s2');
@@ -197,7 +216,7 @@ let multiplier = 1;
 let gameOver = false;
 let history = []; 
 
-// NEU: Speichert Würfe für BEIDE Spieler getrennt
+// Speichert Würfe für BEIDE Spieler getrennt
 let roundThrows = { 1: [], 2: [] }; 
 
 function initGame() {
@@ -215,7 +234,7 @@ function initGame() {
     multiplier = 1;
     gameOver = false;
     history = [];
-    roundThrows = { 1: [], 2: [] }; // Reset
+    roundThrows = { 1: [], 2: [] }; 
     
     document.getElementById("winner").textContent = "";
     setMulti(1);
@@ -285,8 +304,7 @@ function nextTurn() {
     
     currentPlayer = nextP;
     
-    // WICHTIG: Hier löschen wir nur die Würfe des Spielers, der JETZT dran ist
-    // damit er Platz für neue hat. Die vom Gegner bleiben stehen.
+    // Nur die Würfe des neuen Spielers löschen
     roundThrows[currentPlayer] = [];
 
     throwsLeft = 3;
