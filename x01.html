@@ -14,7 +14,8 @@
 <style>
     body { 
         margin:0; font-family: system-ui, sans-serif; background:#1a1a1a; color:white; text-align:center; 
-        overflow-x: hidden; touch-action: manipulation; padding-bottom: 20px; 
+        overflow: hidden; /* Verhindert Scrollen wenn möglich */
+        touch-action: manipulation; padding-bottom: 0; height: 100vh; display: flex; flex-direction: column;
     }
 
     #game-border {
@@ -25,80 +26,84 @@
     #game-border.turn-p2 { box-shadow: inset 0 0 50px rgba(0, 191, 255, 0.4); border: 4px solid rgba(0, 191, 255, 0.5); }
     #game-border.winner-glow { box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.6); border: 6px solid gold; }
 
-    /* Scoreboard */
-    .scoreboard { display: flex; justify-content: space-around; margin: 5px 0 10px 0; align-items: flex-start; }
-    .player-score { display: flex; flex-direction: column; width: 45%; padding: 8px 5px; border-radius: 10px; transition: 0.3s; position: relative; }
+    /* --- HEADER BEREICH (Sehr kompakt) --- */
+    .top-bar { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 5px; }
+    
+    .mode-select select { background: #333; color: white; border: 1px solid #555; padding: 2px 5px; border-radius: 5px; font-size: 14px; }
+    h1 { margin: 0; color: gold; font-size: 18px; line-height: 1; }
+    #seriesInfo { font-size: 12px; color: #888; font-weight: bold; }
+    #roundDisplay { font-size: 14px; color: #aaa; font-weight: bold; margin-bottom: 2px;}
+
+    /* --- SCOREBOARD --- */
+    .scoreboard { display: flex; justify-content: space-around; margin: 2px 0 5px 0; align-items: flex-start; }
+    .player-score { display: flex; flex-direction: column; width: 45%; padding: 5px; border-radius: 10px; transition: 0.3s; position: relative; }
     .player-score.active { background: #333; transform: scale(1.02); border: 2px solid gold; z-index: 10; }
     
-    .p-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+    .p-name { font-size: 16px; font-weight: bold; margin-bottom: 0; line-height: 1.2; }
     
-    /* PUNKTE und AVERAGE extrem eng zusammen */
+    /* PUNKTE */
     .p-points { 
-        font-size: 56px; 
-        font-weight: 800; 
-        line-height: 0.85; /* Verhindert Leerraum oben/unten */
-        margin-bottom: -5px; /* Zieht das untere Element hoch */
-        z-index: 2;
-        position: relative;
+        font-size: 54px; font-weight: 800; line-height: 0.85; 
+        margin-bottom: -4px; z-index: 2; position: relative;
     }
+    
+    /* AVERAGE (Direkt unter Punkten) */
     .avg-display { 
-        font-size: 13px; 
-        color: #888; 
-        margin-top: 5px; /* Minimaler Abstand zur Zahl */
-        font-weight: bold;
-        z-index: 1;
+        font-size: 12px; color: #888; font-weight: bold; z-index: 1;
+        margin-bottom: 2px; /* Wenig Abstand nach unten zu den Würfen */
     }
 
-    /* Checkout Hinweis */
+    /* CHECKOUT & WÜRFE (Kompakt) */
+    .info-wrapper { min-height: 42px; display: flex; flex-direction: column; justify-content: flex-start; }
+    
     .checkout-hint { 
-        font-size: 14px; color: #00ff00; font-weight: bold; min-height: 18px; margin-top: 5px;
-        text-shadow: 0 0 5px rgba(0,255,0,0.3);
+        font-size: 13px; color: #00ff00; font-weight: bold; line-height: 1.2;
+        text-shadow: 0 0 5px rgba(0,255,0,0.3); height: 16px; margin-bottom: 2px;
     }
 
-    /* Kleine Wurfanzeige */
     .mini-throws {
-        display: flex; justify-content: center; gap: 4px; margin-top: 5px; min-height: 24px;
-        flex-wrap: wrap;
+        display: flex; justify-content: center; gap: 3px; 
+        margin-top: 0; /* Kein extra Abstand nach oben */
     }
     .throw-tag {
-        font-size: 13px; font-weight: bold; color: gold; background: #222; 
-        padding: 2px 6px; border-radius: 4px; border: 1px solid #444;
+        font-size: 12px; font-weight: bold; color: gold; background: #222; 
+        padding: 1px 5px; border-radius: 3px; border: 1px solid #444;
     }
 
-    /* Controls */
-    #controls { max-width:440px; margin:auto; padding: 0 10px; margin-top: 5px; }
-    .btn-row { display:flex; justify-content:center; gap:6px; margin-bottom:8px; }
-    button { padding:12px; font-size:14px; border-radius:6px; border:none; cursor:pointer; flex:1; background: #444; color: white; transition: 0.2s; user-select: none; }
-    button.active { background: gold; color: black; font-weight:bold; transform: scale(1.05);}
-    button.func { background: #555; }
-    
-    #next-turn-container { max-width:440px; margin: 5px auto; padding: 0 10px; }
-    button.next-turn { background: #2e7d32; color: white; width: 100%; font-weight: bold; font-size: 16px; border: 1px solid #4caf50; padding: 15px; border-radius: 8px;}
-    
-    #dartboard { width:100vw; max-width:480px; height:auto; display:block; margin:auto; touch-action: none; }
-    #winner { font-size:28px; margin:15px 0; font-weight:bold; color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5);}
-    
-    /* Header Elemente */
-    h1 { margin: 10px 0 2px 0; color: gold; font-size: 20px; position: relative; z-index: 1; }
-    #seriesInfo { font-size: 13px; color: #888; margin-bottom: 2px; font-weight: bold; }
-    #roundDisplay { font-size: 14px; color: #aaa; margin-bottom: 5px; font-weight: bold; }
+    .p1 .p-name { color: #ff3b3b; }
+    .p2 .p-name { color: #00bfff; }
 
-    .mode-select { margin-top: 5px; margin-bottom: 5px; }
-    .mode-select select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 5px; font-size: 16px; }
+    /* --- CONTROLS --- */
+    #controls { max-width:440px; margin: 0 auto; padding: 0 5px; width: 100%; box-sizing: border-box; }
+    .btn-row { display:flex; justify-content:center; gap:5px; margin-bottom:5px; }
+    button { padding: 10px; font-size:14px; border-radius:6px; border:none; cursor:pointer; flex:1; background: #444; color: white; transition: 0.1s; user-select: none; }
+    button.active { background: gold; color: black; font-weight:bold; }
+    button.func { background: #555; padding: 8px; font-size: 12px; }
+    
+    /* --- BOARD --- */
+    /* Das Board nimmt den restlichen Platz, wird aber nicht riesig */
+    #board-container { flex-grow: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+    #dartboard { width: 100%; height: 100%; max-height: 45vh; max-width: 480px; touch-action: none; }
+    
+    #next-turn-container { width: 100%; max-width:440px; margin: 0 auto 5px auto; padding: 0 10px; box-sizing: border-box; }
+    button.next-turn { background: #2e7d32; color: white; width: 100%; font-weight: bold; font-size: 16px; border: 1px solid #4caf50; padding: 12px; border-radius: 8px;}
+    
+    #winner { font-size:28px; margin:15px 0; font-weight:bold; color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5); position:absolute; top: 40%; left:0; width:100%; z-index:100; pointer-events:none;}
 </style>
 </head>
 <body>
 
 <div id="game-border"></div>
 
-<div id="modeContainer" class="mode-select">
-    <select id="startScoreSelect" onchange="resetGame()">
-        <option value="301">301</option>
-        <option value="501" selected>501</option>
-    </select>
+<div class="top-bar">
+    <h1 id="mainTitle">🎯 X01</h1>
+    <div id="modeContainer" class="mode-select">
+        <select id="startScoreSelect" onchange="resetGame()">
+            <option value="301">301</option>
+            <option value="501" selected>501</option>
+        </select>
+    </div>
 </div>
-
-<h1 id="mainTitle">🎯 X01 Darts</h1>
 <div id="seriesInfo"></div>
 <div id="roundDisplay">Runde: 1</div>
 
@@ -107,15 +112,21 @@
         <div class="p-name" id="name1">Spieler 1</div>
         <div class="p-points" id="score1">501</div>
         <div class="avg-display" id="avg1">Ø 0.0</div>
-        <div class="checkout-hint" id="checkout1"></div>
-        <div class="mini-throws" id="throws1"></div>
+        
+        <div class="info-wrapper">
+            <div class="checkout-hint" id="checkout1"></div>
+            <div class="mini-throws" id="throws1"></div>
+        </div>
     </div>
     <div id="p2-box" class="player-score p2">
         <div class="p-name" id="name2">Spieler 2</div>
         <div class="p-points" id="score2">501</div>
         <div class="avg-display" id="avg2">Ø 0.0</div>
-        <div class="checkout-hint" id="checkout2"></div>
-        <div class="mini-throws" id="throws2"></div>
+        
+        <div class="info-wrapper">
+            <div class="checkout-hint" id="checkout2"></div>
+            <div class="mini-throws" id="throws2"></div>
+        </div>
     </div>
 </div>
 
@@ -134,9 +145,11 @@
 
 <div id="winner"></div>
 
-<svg viewBox="-240 -240 480 480" id="dartboard">
-    <defs><pattern id="hatch" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)"><rect width="5" height="10" fill="rgba(255,59,59,0.7)" /><rect x="5" width="5" height="10" fill="rgba(0,191,255,0.7)" /></pattern></defs>
-</svg>
+<div id="board-container">
+    <svg viewBox="-240 -240 480 480" id="dartboard">
+        <defs><pattern id="hatch" patternUnits="userSpaceOnUse" width="10" height="10" patternTransform="rotate(45)"><rect width="5" height="10" fill="rgba(255,59,59,0.7)" /><rect x="5" width="5" height="10" fill="rgba(0,191,255,0.7)" /></pattern></defs>
+    </svg>
+</div>
 
 <div id="next-turn-container">
     <button class="next-turn" onclick="nextTurn()">⏭️ Zug beenden / Verfehlt</button>
@@ -149,7 +162,7 @@ const ROTATION_OFFSET = -9;
 const BOARD_R = 180;
 const BULL_R = 38;
 
-// Checkout Tabelle
+// Checkout Tabelle (Gekürzt für Übersicht, Logik bleibt gleich)
 const checkouts = {
     170: "T20 T20 BULL", 167: "T20 T19 BULL", 164: "T20 T18 BULL", 161: "T20 T17 BULL", 160: "T20 T20 D20",
     158: "T20 T20 D19", 157: "T20 T19 D20", 156: "T20 T20 D18", 155: "T20 T19 D19", 154: "T20 T18 D20",
@@ -203,7 +216,6 @@ if (isTournament) {
 document.getElementById('name1').textContent = name1;
 document.getElementById('name2').textContent = name2;
 
-// --- GAME STATE ---
 let scores = {1: 501, 2: 501};
 let startOfTurnScore = {1: 501, 2: 501};
 let stats = { 1: { throws: 0, points: 0 }, 2: { throws: 0, points: 0 } };
@@ -214,17 +226,18 @@ let throwsLeft = 3;
 let multiplier = 1;
 let gameOver = false;
 let history = []; 
-
-// NEU: Zählt Punkte für den aktuellen Zug für die Ansage
 let turnTotalPoints = 0;
-
-// Speichert Würfe für BEIDE Spieler getrennt
 let roundThrows = { 1: [], 2: [] }; 
 
 // --- AUDIO MAP ---
+// "Zahl": "Dateipfad"
+// Beispiel: "180": "sounds/180.mp3"
 const audioMap = {
-    // "180": "sounds/180.mp3",
-    // "Game Shot": "sounds/gameshot.mp3"
+    // "180": "180.mp3",
+    // "140": "140.mp3",
+    // "100": "100.mp3",
+    // "Game Shot": "gameshot.mp3",
+    // "No Score": "noscore.mp3"
 };
 
 function initGame() {
@@ -295,24 +308,23 @@ function formatThrow(m, n) {
     return n.toString();
 }
 
-// COOLER CALLER FUNKTION
 function announce(text) {
+    // 1. Audio Datei abspielen falls vorhanden
     if (audioMap[text]) {
         let audio = new Audio(audioMap[text]);
         audio.play().catch(e => console.log("Audio play error", e));
     } else {
+        // 2. Fallback: Computerstimme
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
             let msg = new SpeechSynthesisUtterance(text);
-            msg.lang = 'en-GB';
+            msg.lang = 'en-GB'; 
             msg.rate = 1.1; 
             msg.pitch = 0.8;
             msg.volume = 1.0;
-            
             let voices = window.speechSynthesis.getVoices();
             let gbVoice = voices.find(v => v.lang.includes('GB') || v.lang.includes('uk'));
             if (gbVoice) msg.voice = gbVoice;
-
             window.speechSynthesis.speak(msg);
         }
     }
@@ -330,9 +342,8 @@ function nextTurn() {
     
     currentPlayer = nextP;
     
-    // Nur die Würfe des neuen Spielers löschen
     roundThrows[currentPlayer] = [];
-    turnTotalPoints = 0; // Reset für den neuen Spieler
+    turnTotalPoints = 0;
 
     throwsLeft = 3;
     startOfTurnScore[currentPlayer] = scores[currentPlayer];
@@ -352,10 +363,7 @@ function throwDart(num) {
     const points = num * multiplier;
     let newScore = scores[currentPlayer] - points;
     
-    // Wurf speichern
     roundThrows[currentPlayer].push(formatThrow(multiplier, num));
-
-    // Punkte für die Ansage sammeln (kein sofortiges Speak mehr!)
     turnTotalPoints += points;
 
     stats[currentPlayer].throws++;
@@ -365,10 +373,10 @@ function throwDart(num) {
         scores[currentPlayer] = 0;
         checkWin();
     } else if (newScore < 0 || newScore === 1) { 
-        announce("No Score"); // Bust Ansage sofort
+        announce("No Score"); 
         scores[currentPlayer] = startOfTurnScore[currentPlayer]; 
         throwsLeft = 1; 
-        turnTotalPoints = 0; // Kein Score für diese Runde (effektiv)
+        turnTotalPoints = 0; 
     } else {
         scores[currentPlayer] = newScore;
     }
@@ -376,8 +384,7 @@ function throwDart(num) {
     throwsLeft--;
     
     if(throwsLeft === 0 && !gameOver) {
-        // HIER WIRD DIE SUMME ANGESAGT
-        if(newScore > 1) { // Nur ansagen wenn nicht Bust oder Win
+        if(newScore > 1) { 
              announce(turnTotalPoints.toString());
         }
         setTimeout(nextTurn, 800); 
@@ -392,7 +399,7 @@ function checkWin() {
     document.getElementById("winner").textContent = `🏆 ${winnerName} CHECKOUT!`;
     document.getElementById("score" + currentPlayer).textContent = "0";
     
-    announce("Game Shot!");
+    announce("Game Shot");
     
     gameOver = true;
     document.getElementById('game-border').className = "winner-glow";
@@ -432,11 +439,9 @@ function updateUI() {
     const p2Box = document.getElementById("p2-box");
     const border = document.getElementById('game-border');
     
-    // Leeren
     document.getElementById('throws1').innerHTML = "";
     document.getElementById('throws2').innerHTML = "";
 
-    // Würfe rendern für P1
     roundThrows[1].forEach(t => {
         let tag = document.createElement("span");
         tag.className = "throw-tag";
@@ -444,7 +449,6 @@ function updateUI() {
         document.getElementById('throws1').appendChild(tag);
     });
 
-    // Würfe rendern für P2
     roundThrows[2].forEach(t => {
         let tag = document.createElement("span");
         tag.className = "throw-tag";
