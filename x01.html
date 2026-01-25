@@ -26,26 +26,38 @@
     #game-border.winner-glow { box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.6); border: 6px solid gold; }
 
     /* Scoreboard */
-    .scoreboard { display: flex; justify-content: space-around; margin: 10px 0; align-items: flex-start; }
-    .player-score { display: flex; flex-direction: column; width: 45%; padding: 10px; border-radius: 10px; transition: 0.3s; position: relative; }
-    .player-score.active { background: #333; transform: scale(1.05); border: 2px solid gold; z-index: 10; }
+    .scoreboard { display: flex; justify-content: space-around; margin: 5px 0 10px 0; align-items: flex-start; }
+    .player-score { display: flex; flex-direction: column; width: 45%; padding: 8px 5px; border-radius: 10px; transition: 0.3s; position: relative; }
+    .player-score.active { background: #333; transform: scale(1.02); border: 2px solid gold; z-index: 10; }
     
     .p-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
-    .p-points { font-size: 48px; font-weight: bold; line-height: 1; }
-    .p1 .p-name { color: #ff3b3b; }
-    .p2 .p-name { color: #00bfff; }
     
-    .avg-display { font-size: 12px; color: #888; margin-top: 2px; }
+    /* PUNKTE und AVERAGE extrem eng zusammen */
+    .p-points { 
+        font-size: 56px; 
+        font-weight: 800; 
+        line-height: 0.85; /* Verhindert Leerraum oben/unten */
+        margin-bottom: -5px; /* Zieht das untere Element hoch */
+        z-index: 2;
+        position: relative;
+    }
+    .avg-display { 
+        font-size: 13px; 
+        color: #888; 
+        margin-top: 5px; /* Minimaler Abstand zur Zahl */
+        font-weight: bold;
+        z-index: 1;
+    }
 
     /* Checkout Hinweis */
     .checkout-hint { 
-        font-size: 14px; color: #00ff00; font-weight: bold; margin-top: 5px; min-height: 18px; 
+        font-size: 14px; color: #00ff00; font-weight: bold; min-height: 18px; margin-top: 5px;
         text-shadow: 0 0 5px rgba(0,255,0,0.3);
     }
 
-    /* Kleine Wurfanzeige direkt im Spielerfeld */
+    /* Kleine Wurfanzeige */
     .mini-throws {
-        display: flex; justify-content: center; gap: 4px; margin-top: 8px; min-height: 24px;
+        display: flex; justify-content: center; gap: 4px; margin-top: 5px; min-height: 24px;
         flex-wrap: wrap;
     }
     .throw-tag {
@@ -54,21 +66,24 @@
     }
 
     /* Controls */
-    #controls { max-width:440px; margin:auto; padding: 0 10px; margin-top: 10px; }
+    #controls { max-width:440px; margin:auto; padding: 0 10px; margin-top: 5px; }
     .btn-row { display:flex; justify-content:center; gap:6px; margin-bottom:8px; }
     button { padding:12px; font-size:14px; border-radius:6px; border:none; cursor:pointer; flex:1; background: #444; color: white; transition: 0.2s; user-select: none; }
     button.active { background: gold; color: black; font-weight:bold; transform: scale(1.05);}
     button.func { background: #555; }
     
-    #next-turn-container { max-width:440px; margin: 10px auto; padding: 0 10px; }
+    #next-turn-container { max-width:440px; margin: 5px auto; padding: 0 10px; }
     button.next-turn { background: #2e7d32; color: white; width: 100%; font-weight: bold; font-size: 16px; border: 1px solid #4caf50; padding: 15px; border-radius: 8px;}
     
     #dartboard { width:100vw; max-width:480px; height:auto; display:block; margin:auto; touch-action: none; }
     #winner { font-size:28px; margin:15px 0; font-weight:bold; color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5);}
-    #seriesInfo { font-size: 14px; color: #888; margin-top: 5px; font-weight: bold; }
-    #roundDisplay { font-size: 16px; color: #aaa; margin-top: 5px; font-weight: bold; }
+    
+    /* Header Elemente */
+    h1 { margin: 10px 0 2px 0; color: gold; font-size: 20px; position: relative; z-index: 1; }
+    #seriesInfo { font-size: 13px; color: #888; margin-bottom: 2px; font-weight: bold; }
+    #roundDisplay { font-size: 14px; color: #aaa; margin-bottom: 5px; font-weight: bold; }
 
-    .mode-select { margin-top: 10px; }
+    .mode-select { margin-top: 5px; margin-bottom: 5px; }
     .mode-select select { background: #333; color: white; border: 1px solid #555; padding: 5px; border-radius: 5px; font-size: 16px; }
 </style>
 </head>
@@ -82,6 +97,8 @@
         <option value="501" selected>501</option>
     </select>
 </div>
+
+<h1 id="mainTitle">🎯 X01 Darts</h1>
 <div id="seriesInfo"></div>
 <div id="roundDisplay">Runde: 1</div>
 
@@ -89,15 +106,15 @@
     <div id="p1-box" class="player-score p1 active">
         <div class="p-name" id="name1">Spieler 1</div>
         <div class="p-points" id="score1">501</div>
-        <div class="checkout-hint" id="checkout1"></div>
         <div class="avg-display" id="avg1">Ø 0.0</div>
+        <div class="checkout-hint" id="checkout1"></div>
         <div class="mini-throws" id="throws1"></div>
     </div>
     <div id="p2-box" class="player-score p2">
         <div class="p-name" id="name2">Spieler 2</div>
         <div class="p-points" id="score2">501</div>
-        <div class="checkout-hint" id="checkout2"></div>
         <div class="avg-display" id="avg2">Ø 0.0</div>
+        <div class="checkout-hint" id="checkout2"></div>
         <div class="mini-throws" id="throws2"></div>
     </div>
 </div>
@@ -132,7 +149,7 @@ const ROTATION_OFFSET = -9;
 const BOARD_R = 180;
 const BULL_R = 38;
 
-// Checkout Tabelle (Vereinfacht)
+// Checkout Tabelle
 const checkouts = {
     170: "T20 T20 BULL", 167: "T20 T19 BULL", 164: "T20 T18 BULL", 161: "T20 T17 BULL", 160: "T20 T20 D20",
     158: "T20 T20 D19", 157: "T20 T19 D20", 156: "T20 T20 D18", 155: "T20 T19 D19", 154: "T20 T18 D20",
@@ -170,6 +187,7 @@ if (isTournament) {
     name2 = localStorage.getItem('tournament_p2') || "T2";
     document.getElementById('homeBtn').style.display = 'none';
     document.getElementById('modeContainer').style.display = 'none';
+    document.getElementById('mainTitle').style.display = 'none';
     
     let s1 = urlParams.get('s1');
     let s2 = urlParams.get('s2');
@@ -197,16 +215,16 @@ let multiplier = 1;
 let gameOver = false;
 let history = []; 
 
+// NEU: Zählt Punkte für den aktuellen Zug für die Ansage
+let turnTotalPoints = 0;
+
 // Speichert Würfe für BEIDE Spieler getrennt
 let roundThrows = { 1: [], 2: [] }; 
 
-// --- AUDIO MAP (Platzhalter für echte Files) ---
-// Wenn du echte Dateien hast, lege sie in einen Ordner "sounds" und trage sie hier ein.
-// Z.B.: "180": "sounds/180.mp3"
+// --- AUDIO MAP ---
 const audioMap = {
     // "180": "sounds/180.mp3",
-    // "Game Shot": "sounds/gameshot.mp3",
-    // "Bust": "sounds/bust.mp3"
+    // "Game Shot": "sounds/gameshot.mp3"
 };
 
 function initGame() {
@@ -225,6 +243,7 @@ function initGame() {
     gameOver = false;
     history = [];
     roundThrows = { 1: [], 2: [] }; 
+    turnTotalPoints = 0;
     
     document.getElementById("winner").textContent = "";
     setMulti(1);
@@ -239,7 +258,8 @@ function snapshot() {
         stats: JSON.parse(JSON.stringify(stats)),
         currentPlayer, throwsLeft, multiplier, gameOver,
         roundThrows: JSON.parse(JSON.stringify(roundThrows)),
-        currentRound
+        currentRound,
+        turnTotalPoints
     }));
 }
 
@@ -255,6 +275,8 @@ function undo() {
     gameOver = s.gameOver;
     roundThrows = s.roundThrows;
     currentRound = s.currentRound || 1;
+    turnTotalPoints = s.turnTotalPoints || 0;
+    
     document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
     updateUI();
 }
@@ -275,23 +297,18 @@ function formatThrow(m, n) {
 
 // COOLER CALLER FUNKTION
 function announce(text) {
-    // 1. Check auf Audio File
     if (audioMap[text]) {
         let audio = new Audio(audioMap[text]);
         audio.play().catch(e => console.log("Audio play error", e));
     } else {
-        // 2. Fallback: Getunte TTS (Britisch, tief, schnell)
         if ('speechSynthesis' in window) {
-            // Browser-Eigenheiten abfangen (mobile Browser brauchen User-Interaktion)
-            window.speechSynthesis.cancel(); // Vorheriges abbrechen
-            
+            window.speechSynthesis.cancel();
             let msg = new SpeechSynthesisUtterance(text);
-            msg.lang = 'en-GB'; // Britisch
-            msg.rate = 1.1;     // Schneller
-            msg.pitch = 0.8;    // Tiefer (männlicher)
+            msg.lang = 'en-GB';
+            msg.rate = 1.1; 
+            msg.pitch = 0.8;
             msg.volume = 1.0;
             
-            // Fallback falls keine GB Stimme da ist
             let voices = window.speechSynthesis.getVoices();
             let gbVoice = voices.find(v => v.lang.includes('GB') || v.lang.includes('uk'));
             if (gbVoice) msg.voice = gbVoice;
@@ -305,7 +322,6 @@ function nextTurn() {
     if(gameOver) return;
     snapshot();
     
-    // Spielerwechsel
     let nextP = currentPlayer === 1 ? 2 : 1;
     if (nextP === initialPlayer) {
         currentRound++;
@@ -316,6 +332,7 @@ function nextTurn() {
     
     // Nur die Würfe des neuen Spielers löschen
     roundThrows[currentPlayer] = [];
+    turnTotalPoints = 0; // Reset für den neuen Spieler
 
     throwsLeft = 3;
     startOfTurnScore[currentPlayer] = scores[currentPlayer];
@@ -338,8 +355,8 @@ function throwDart(num) {
     // Wurf speichern
     roundThrows[currentPlayer].push(formatThrow(multiplier, num));
 
-    // Caller
-    announce(points.toString());
+    // Punkte für die Ansage sammeln (kein sofortiges Speak mehr!)
+    turnTotalPoints += points;
 
     stats[currentPlayer].throws++;
     stats[currentPlayer].points += points;
@@ -348,9 +365,10 @@ function throwDart(num) {
         scores[currentPlayer] = 0;
         checkWin();
     } else if (newScore < 0 || newScore === 1) { 
-        announce("Bust!");
+        announce("No Score"); // Bust Ansage sofort
         scores[currentPlayer] = startOfTurnScore[currentPlayer]; 
         throwsLeft = 1; 
+        turnTotalPoints = 0; // Kein Score für diese Runde (effektiv)
     } else {
         scores[currentPlayer] = newScore;
     }
@@ -358,7 +376,11 @@ function throwDart(num) {
     throwsLeft--;
     
     if(throwsLeft === 0 && !gameOver) {
-        setTimeout(nextTurn, 600); 
+        // HIER WIRD DIE SUMME ANGESAGT
+        if(newScore > 1) { // Nur ansagen wenn nicht Bust oder Win
+             announce(turnTotalPoints.toString());
+        }
+        setTimeout(nextTurn, 800); 
     } else {
         multiplier = 1; setMulti(1);
         updateUI();
@@ -475,7 +497,6 @@ function resetGame(){ initGame(); }
 async function requestWakeLock() { if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch (err) {} } }
 document.addEventListener('click', requestWakeLock, { once: true });
 
-// Initialisieren (Wichtig für Sprachausgabe auf Mobile: Muss einmal getriggert werden)
 if ('speechSynthesis' in window) {
     window.speechSynthesis.getVoices();
 }
