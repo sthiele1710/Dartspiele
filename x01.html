@@ -29,37 +29,31 @@
     .scoreboard { display: flex; justify-content: space-around; margin: 10px 0; align-items: flex-start; }
     .player-score { display: flex; flex-direction: column; width: 45%; padding: 10px; border-radius: 10px; transition: 0.3s; position: relative; }
     .player-score.active { background: #333; transform: scale(1.05); border: 2px solid gold; z-index: 10; }
+    
     .p-name { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
     .p-points { font-size: 48px; font-weight: bold; line-height: 1; }
     .p1 .p-name { color: #ff3b3b; }
     .p2 .p-name { color: #00bfff; }
     
-    /* NEU: Average Anzeige */
-    .avg-display { font-size: 12px; color: #888; margin-top: 5px; }
+    .avg-display { font-size: 12px; color: #888; margin-top: 2px; }
 
-    /* NEU: Checkout Hinweis */
+    /* Checkout Hinweis */
     .checkout-hint { 
-        font-size: 14px; color: #00ff00; font-weight: bold; margin-top: 5px; min-height: 20px; 
+        font-size: 14px; color: #00ff00; font-weight: bold; margin-top: 5px; min-height: 18px; 
         text-shadow: 0 0 5px rgba(0,255,0,0.3);
     }
 
-    .history-container {
-        display: flex; flex-direction: column; gap: 5px; margin: 10px auto; max-width: 400px; padding: 0 10px;
+    /* NEU: Kleine Wurfanzeige direkt im Spielerfeld */
+    .mini-throws {
+        display: flex; justify-content: center; gap: 4px; margin-top: 8px; min-height: 24px;
     }
-    .history-row {
-        display: flex; align-items: center; justify-content: space-between; background: #222; padding: 8px; border-radius: 8px;
+    .throw-tag {
+        font-size: 13px; font-weight: bold; color: gold; background: #222; 
+        padding: 2px 6px; border-radius: 4px; border: 1px solid #444;
     }
-    .history-label { font-size: 12px; color: #888; width: 60px; text-align: left; font-weight: bold; }
-    .throws-wrapper { display: flex; gap: 5px; flex: 1; justify-content: flex-end; }
-    .throw-box {
-        width: 40px; height: 30px; background: #333; border: 1px solid #444; border-radius: 4px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 14px; font-weight: bold; color: gold;
-    }
-    .throw-box.empty { color: #555; }
 
     /* Controls */
-    #controls { max-width:440px; margin:auto; padding: 0 10px; }
+    #controls { max-width:440px; margin:auto; padding: 0 10px; margin-top: 10px; }
     .btn-row { display:flex; justify-content:center; gap:6px; margin-bottom:8px; }
     button { padding:12px; font-size:14px; border-radius:6px; border:none; cursor:pointer; flex:1; background: #444; color: white; transition: 0.2s; user-select: none; }
     button.active { background: gold; color: black; font-weight:bold; transform: scale(1.05);}
@@ -96,31 +90,14 @@
         <div class="p-points" id="score1">501</div>
         <div class="checkout-hint" id="checkout1"></div>
         <div class="avg-display" id="avg1">Ø 0.0</div>
+        <div class="mini-throws" id="throws1"></div>
     </div>
     <div id="p2-box" class="player-score p2">
         <div class="p-name" id="name2">Spieler 2</div>
         <div class="p-points" id="score2">501</div>
         <div class="checkout-hint" id="checkout2"></div>
         <div class="avg-display" id="avg2">Ø 0.0</div>
-    </div>
-</div>
-
-<div class="history-container">
-    <div class="history-row">
-        <div class="history-label">Letzter</div>
-        <div class="throws-wrapper">
-            <div class="throw-box" id="prev1">-</div>
-            <div class="throw-box" id="prev2">-</div>
-            <div class="throw-box" id="prev3">-</div>
-        </div>
-    </div>
-    <div class="history-row" style="border: 1px solid #444;">
-        <div class="history-label" style="color:white">Aktuell</div>
-        <div class="throws-wrapper">
-            <div class="throw-box" id="curr1">-</div>
-            <div class="throw-box" id="curr2">-</div>
-            <div class="throw-box" id="curr3">-</div>
-        </div>
+        <div class="mini-throws" id="throws2"></div>
     </div>
 </div>
 
@@ -172,11 +149,9 @@ const checkouts = {
     90: "T18 D18", 80: "T20 D10", 70: "T18 D8", 60: "20 D20", 50: "10 D20", 40: "D20", 36: "D18", 32: "D16", 20: "D10", 10: "D5", 4: "D2", 2: "D1"
 };
 
-// Wenn Score < 170 aber nicht in Liste, generische Hilfe anzeigen
 function getCheckoutHint(score) {
     if (checkouts[score]) return checkouts[score];
     if (score > 170 || score < 2) return "";
-    // Einfache Logik für kleine Zahlen, falls nicht in der Liste
     if (score <= 40 && score % 2 === 0) return "D" + (score / 2);
     return "";
 }
@@ -212,11 +187,7 @@ document.getElementById('name2').textContent = name2;
 // --- GAME STATE ---
 let scores = {1: 501, 2: 501};
 let startOfTurnScore = {1: 501, 2: 501};
-// NEU: Stats für Average
-let stats = {
-    1: { throws: 0, points: 0 },
-    2: { throws: 0, points: 0 }
-};
+let stats = { 1: { throws: 0, points: 0 }, 2: { throws: 0, points: 0 } };
 
 let currentPlayer = initialPlayer;
 let currentRound = 1;
@@ -226,15 +197,12 @@ let gameOver = false;
 let history = []; 
 
 let currentThrows = []; 
-let prevThrows = ["-", "-", "-"];
 
 function initGame() {
     if(!isTournament) startScore = parseInt(document.getElementById('startScoreSelect').value);
     
     scores = {1: startScore, 2: startScore};
     startOfTurnScore = {1: startScore, 2: startScore};
-    
-    // Stats reset
     stats = { 1: { throws: 0, points: 0 }, 2: { throws: 0, points: 0 } };
 
     currentPlayer = initialPlayer;
@@ -246,7 +214,6 @@ function initGame() {
     gameOver = false;
     history = [];
     currentThrows = [];
-    prevThrows = ["-", "-", "-"];
     
     document.getElementById("winner").textContent = "";
     setMulti(1);
@@ -258,10 +225,9 @@ function snapshot() {
     history.push(JSON.stringify({
         scores: {...scores},
         startOfTurnScore: {...startOfTurnScore},
-        stats: JSON.parse(JSON.stringify(stats)), // Deep copy stats
+        stats: JSON.parse(JSON.stringify(stats)),
         currentPlayer, throwsLeft, multiplier, gameOver,
         currentThrows: [...currentThrows],
-        prevThrows: [...prevThrows],
         currentRound
     }));
 }
@@ -277,7 +243,6 @@ function undo() {
     multiplier = s.multiplier;
     gameOver = s.gameOver;
     currentThrows = s.currentThrows;
-    prevThrows = s.prevThrows;
     currentRound = s.currentRound || 1;
     document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
     updateUI();
@@ -297,11 +262,10 @@ function formatThrow(m, n) {
     return n.toString();
 }
 
-// SPRACHAUSGABE
 function speakScore(text) {
     if ('speechSynthesis' in window) {
         let msg = new SpeechSynthesisUtterance(text);
-        msg.lang = 'en-US'; // Englisch klingt "cooler" beim Darts
+        msg.lang = 'en-US'; 
         window.speechSynthesis.speak(msg);
     }
 }
@@ -310,11 +274,8 @@ function nextTurn() {
     if(gameOver) return;
     snapshot();
     
-    prevThrows = [...currentThrows];
-    while(prevThrows.length < 3) prevThrows.push("-"); 
-    currentThrows = [];
+    currentThrows = []; // Reset throws display
 
-    // Spielerwechsel
     let nextP = currentPlayer === 1 ? 2 : 1;
     if (nextP === initialPlayer) {
         currentRound++;
@@ -341,30 +302,18 @@ function throwDart(num) {
     let newScore = scores[currentPlayer] - points;
     currentThrows.push(formatThrow(multiplier, num));
 
-    // Caller
     speakScore(points.toString());
 
-    // Stats aktualisieren
     stats[currentPlayer].throws++;
     stats[currentPlayer].points += points;
 
     if (newScore === 0) {
-        // GEWONNEN (muss Double Out sein? Hier simplified Straight Out)
-        // Aber wir können prüfen, ob multiplier == 2 ist für "echtes" Darts.
-        // Hier: Straight Out erlaubt.
         scores[currentPlayer] = 0;
         checkWin();
-    } else if (newScore < 0 || newScore === 1) { // 1 Rest ist bei Double Out auch Bust
-        // BUST
+    } else if (newScore < 0 || newScore === 1) { 
         speakScore("Bust!");
         scores[currentPlayer] = startOfTurnScore[currentPlayer]; 
-        
-        // Stats korrigieren für Bust? 
-        // Normalerweise zählen die Punkte für Average, auch bei Bust, 
-        // ABER: Wenn Score zurückgesetzt wird, ist es kompliziert.
-        // Wir lassen die geworfenen Punkte im Average, auch wenn Score reset.
-        
-        throwsLeft = 1; // Erzwingt Wechsel beim nächsten Step
+        throwsLeft = 1; 
     } else {
         scores[currentPlayer] = newScore;
     }
@@ -408,15 +357,12 @@ function saveWin(winnerName) {
 }
 
 function updateUI() {
-    // Scores
     document.getElementById("score1").textContent = scores[1];
     document.getElementById("score2").textContent = scores[2];
     
-    // Checkout Hints
     document.getElementById("checkout1").textContent = getCheckoutHint(scores[1]);
     document.getElementById("checkout2").textContent = getCheckoutHint(scores[2]);
 
-    // Average Calc (Points / Throws * 3)
     let avg1 = stats[1].throws > 0 ? (stats[1].points / stats[1].throws * 3).toFixed(1) : "0.0";
     let avg2 = stats[2].throws > 0 ? (stats[2].points / stats[2].throws * 3).toFixed(1) : "0.0";
     document.getElementById("avg1").textContent = "Ø " + avg1;
@@ -426,22 +372,26 @@ function updateUI() {
     const p2Box = document.getElementById("p2-box");
     const border = document.getElementById('game-border');
     
+    // Leeren
+    document.getElementById('throws1').innerHTML = "";
+    document.getElementById('throws2').innerHTML = "";
+
+    // Würfe rendern (nur für den aktiven Spieler sichtbar machen)
+    const activeThrowsContainer = currentPlayer === 1 ? document.getElementById('throws1') : document.getElementById('throws2');
+    
+    currentThrows.forEach(t => {
+        let tag = document.createElement("span");
+        tag.className = "throw-tag";
+        tag.textContent = t;
+        activeThrowsContainer.appendChild(tag);
+    });
+
     if(currentPlayer === 1) {
         p1Box.classList.add("active"); p2Box.classList.remove("active");
         if(!gameOver) border.className = "turn-p1";
     } else {
         p2Box.classList.add("active"); p1Box.classList.remove("active");
         if(!gameOver) border.className = "turn-p2";
-    }
-    
-    for(let i=0; i<3; i++) {
-        document.getElementById(`prev${i+1}`).textContent = prevThrows[i] || "-";
-    }
-    for(let i=0; i<3; i++) {
-        let val = currentThrows[i];
-        let el = document.getElementById(`curr${i+1}`);
-        el.textContent = val || "-";
-        if(val) el.classList.remove("empty"); else el.classList.add("empty");
     }
 }
 
