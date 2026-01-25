@@ -13,10 +13,10 @@
     <link rel="icon" type="image/png" href="icon.png">
 
     <style>
-        body { margin: 0; font-family: sans-serif; background: #121212; color: white; text-align: center; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; font-family: sans-serif; background: #121212; color: white; text-align: center; -webkit-tap-highlight-color: transparent; padding-bottom: 20px;}
         
-        .tab-nav { display: flex; background: #1f1f1f; position: sticky; top: 0; z-index: 10; }
-        .tab-nav button { flex: 1; padding: 15px; border: none; background: none; color: #888; font-size: 16px; cursor: pointer; }
+        .tab-nav { display: flex; background: #1f1f1f; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #333; }
+        .tab-nav button { flex: 1; padding: 15px; border: none; background: none; color: #888; font-size: 16px; cursor: pointer; font-weight: bold; }
         .tab-nav button.active { color: gold; border-bottom: 3px solid gold; }
         
         .content { padding: 20px; display: none; }
@@ -31,6 +31,7 @@
             padding: 20px; margin: 15px auto; border-radius: 12px; 
             border-left: 8px solid gold; font-weight: bold; font-size: 18px;
             transition: transform 0.1s, background 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
         .menu-btn:active { transform: scale(0.98); background: #333; }
         .icon { font-size: 20px; color: #666; }
@@ -39,13 +40,15 @@
         .tournament-btn {
             border-left-color: gold; 
             background: linear-gradient(90deg, #332b00 0%, #2a2a2a 100%);
+            margin-top: 30px;
         }
 
         /* Tabelle */
-        table { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 14px; }
-        th, td { padding: 12px; border-bottom: 1px solid #333; text-align: left; }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 10px 5px; border-bottom: 1px solid #333; text-align: center; }
+        td:first-child, th:first-child { text-align: left; padding-left: 10px;}
         th { color: gold; }
-        .num { text-align: center; }
+        .num { font-weight: bold; color: #ddd; }
     </style>
 </head>
 <body>
@@ -56,20 +59,24 @@
     </div>
 
     <div id="games" class="content active">
-        <h1>🎮 Spiele wählen</h1>
+        <h1 style="color:gold; margin-top:0;">🎮 Spiele wählen</h1>
         
         <input type="text" id="p1Name" placeholder="Name Spieler 1" oninput="saveNames()">
         <input type="text" id="p2Name" placeholder="Name Spieler 2" oninput="saveNames()">
         
-        <div style="margin-top: 30px;">
+        <div style="margin-top: 20px;">
+            <a href="x01.html" class="menu-btn" style="border-left-color: #00ff00;">
+                <span>💯 X01 (501 / 301)</span> <span class="icon">❯</span>
+            </a>
+
+            <a href="cricket.html" class="menu-btn" style="border-left-color: #d500f9;">
+                <span>🦗 Cricket</span> <span class="icon">❯</span>
+            </a>
+
             <a href="domination.html" class="menu-btn" style="border-left-color: #ff3b3b;">
                 <span>🎯 Domination</span> <span class="icon">❯</span>
             </a>
             
-            <a href="x01.html" class="menu-btn" style="border-left-color: #00ff00;">
-                <span>💯 301 / 501</span> <span class="icon">❯</span>
-            </a>
-
             <a href="tictactoe.html" class="menu-btn" style="border-left-color: #00bfff;">
                 <span>❌ Tic Tac Toe</span> <span class="icon">❯</span>
             </a>
@@ -81,18 +88,16 @@
     </div>
 
     <div id="stats" class="content">
-        <h1>🏆 All-Time Siege</h1>
+        <h1 style="color:gold; margin-top:0;">🏆 All-Time Siege</h1>
         <table>
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th class="num">🎯 Dom.</th>
-                    <th class="num">❌ TTT</th>
-                </tr>
+                    <th>💯</th> <th>🦗</th> <th>🎯</th> <th>❌</th> </tr>
             </thead>
             <tbody id="leaderboard-body"></tbody>
         </table>
-        <button onclick="clearStats()" style="margin-top:30px; background:none; border:none; color:#555; font-size:12px; padding: 20px;">Statistiken zurücksetzen</button>
+        <button onclick="clearStats()" style="margin-top:30px; background:none; border:none; color:#555; font-size:12px; padding: 20px; width:100%;">Statistiken zurücksetzen</button>
     </div>
 
     <script>
@@ -118,23 +123,34 @@
             const stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
             const entries = Object.entries(stats);
             
-            // Sortieren nach Gesamt-Siegen
+            // Sortieren nach Gesamt-Siegen (Alle Spiele zusammenzählen)
             entries.sort((a, b) => {
-                const totalA = ((typeof a[1] === 'number' ? a[1] : a[1].dart) || 0) + (a[1].ttt || 0);
-                const totalB = ((typeof b[1] === 'number' ? b[1] : b[1].dart) || 0) + (b[1].ttt || 0);
+                const dataA = typeof a[1] === 'number' ? {dart: a[1]} : a[1];
+                const dataB = typeof b[1] === 'number' ? {dart: b[1]} : b[1];
+
+                const totalA = (dataA.x01 || 0) + (dataA.cricket || 0) + (dataA.dart || 0) + (dataA.ttt || 0);
+                const totalB = (dataB.x01 || 0) + (dataB.cricket || 0) + (dataB.dart || 0) + (dataB.ttt || 0);
+                
                 return totalB - totalA;
             });
 
             const body = document.getElementById('leaderboard-body');
-            body.innerHTML = entries.map(([name, data]) => {
-                const dScore = (typeof data === 'number') ? data : (data.dart || 0);
-                const tScore = data.ttt || 0;
-                return `<tr><td>${name}</td><td class="num">${dScore}</td><td class="num">${tScore}</td></tr>`;
+            body.innerHTML = entries.map(([name, rawData]) => {
+                // Fallback für alte Datenstruktur
+                const data = typeof rawData === 'number' ? { dart: rawData } : rawData;
+                
+                return `<tr>
+                    <td>${name}</td>
+                    <td class="num">${data.x01 || 0}</td>
+                    <td class="num">${data.cricket || 0}</td>
+                    <td class="num">${data.dart || 0}</td>
+                    <td class="num">${data.ttt || 0}</td>
+                </tr>`;
             }).join('');
         }
 
         function clearStats() {
-            if(confirm("Wirklich alles löschen?")) {
+            if(confirm("Wirklich alle Statistiken löschen?")) {
                 localStorage.removeItem('allTimeStats');
                 renderLeaderboard();
             }
