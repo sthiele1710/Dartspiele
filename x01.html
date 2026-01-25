@@ -14,8 +14,7 @@
 <style>
     body { 
         margin:0; font-family: system-ui, sans-serif; background:#1a1a1a; color:white; text-align:center; 
-        overflow: hidden; /* Verhindert Scrollen */
-        touch-action: manipulation; padding-bottom: 0; height: 100vh; display: flex; flex-direction: column;
+        overflow: hidden; touch-action: manipulation; padding-bottom: 0; height: 100vh; display: flex; flex-direction: column;
     }
 
     #game-border {
@@ -27,77 +26,79 @@
     #game-border.winner-glow { box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.6); border: 6px solid gold; }
 
     /* --- HEADER --- */
-    .top-bar { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 5px; }
-    .mode-select select { background: #333; color: white; border: 1px solid #555; padding: 2px 5px; border-radius: 5px; font-size: 14px; }
-    h1 { margin: 0; color: gold; font-size: 18px; line-height: 1; }
-    #seriesInfo { font-size: 12px; color: #888; font-weight: bold; margin-top: 2px;}
-    #roundDisplay { font-size: 14px; color: #aaa; font-weight: bold; margin-bottom: 2px;}
+    .top-bar { display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 10px; margin-bottom: 5px; }
+    .mode-select select { background: #333; color: white; border: 1px solid #555; padding: 4px 8px; border-radius: 5px; font-size: 16px; }
+    h1 { margin: 0; color: gold; font-size: 22px; line-height: 1; }
+    #seriesInfo { font-size: 14px; color: #888; font-weight: bold; margin-top: 5px;}
+    #roundDisplay { font-size: 16px; color: #aaa; font-weight: bold; margin-bottom: 10px;}
 
-    /* --- SCOREBOARD (Optimiert: Kompakt) --- */
-    .scoreboard { display: flex; justify-content: space-around; margin: 0 0 5px 0; align-items: flex-start; }
+    /* --- SCOREBOARD (Ausgewogener) --- */
+    .scoreboard { display: flex; justify-content: space-around; margin: 0 0 10px 0; align-items: flex-start; }
     
     .player-score { 
         display: flex; flex-direction: column; width: 42%; 
-        padding: 4px 4px 2px 4px; /* Sehr wenig Padding */
-        border-radius: 8px; transition: 0.3s; position: relative; 
+        padding: 12px 8px; /* Wieder mehr Polsterung */
+        border-radius: 12px; transition: 0.3s; position: relative; 
     }
-    .player-score.active { background: #333; transform: scale(1.02); border: 2px solid gold; z-index: 10; }
+    .player-score.active { background: #333; transform: scale(1.03); border: 2px solid gold; z-index: 10; }
     
-    /* Name */
-    .p-name { font-size: 15px; font-weight: bold; margin-bottom: 0; line-height: 1.1; opacity: 0.9; }
+    /* Name (Mehr Abstand) */
+    .p-name { font-size: 18px; font-weight: bold; margin-bottom: 8px; line-height: 1.1; opacity: 0.9; }
     
-    /* PUNKTE (Kompakter) */
+    /* PUNKTE (Groß und mit Abstand) */
     .p-points { 
-        font-size: 48px; /* Etwas kleiner als vorher (54) */
-        font-weight: 800; line-height: 0.85; 
-        margin-bottom: -6px; /* Zieht Average hoch */
+        font-size: 56px; 
+        font-weight: 800; line-height: 1; 
+        margin-bottom: 4px; /* Abstand zum Average */
         z-index: 2; position: relative;
     }
     
     /* AVERAGE */
     .avg-display { 
-        font-size: 11px; color: #888; font-weight: bold; z-index: 1;
-        margin-top: 0; margin-bottom: 0; /* Kein Abstand */
+        font-size: 13px; color: #aaa; font-weight: bold; z-index: 1;
+        margin-bottom: 8px; /* Abstand zum unteren Block */
     }
 
-    /* INFO WRAPPER (Checkout & Würfe) */
+    /* INFO WRAPPER (Checkout & Würfe - ENGER ZUSAMMEN) */
     .info-wrapper { 
-        min-height: 36px; /* Reduzierte Höhe */
-        display: flex; flex-direction: column; justify-content: flex-end; 
+        display: flex; flex-direction: column; justify-content: flex-start;
+        margin-top: 0; /* Sitzt direkt unter dem definierten Margin des Average */
     }
     
     .checkout-hint { 
-        font-size: 12px; color: #00ff00; font-weight: bold; line-height: 1.1;
-        text-shadow: 0 0 5px rgba(0,255,0,0.3); height: 14px; margin-bottom: 1px;
+        font-size: 14px; color: #00ff00; font-weight: bold; line-height: 1.1;
+        text-shadow: 0 0 5px rgba(0,255,0,0.3); min-height: 16px; 
+        margin-bottom: 2px; /* Sehr nah an den Würfen */
     }
 
     .mini-throws {
-        display: flex; justify-content: center; gap: 3px; 
-        margin-top: 1px; min-height: 20px;
+        display: flex; justify-content: center; gap: 4px; 
+        margin-top: 0; /* Direkt unter Checkout */
+        min-height: 24px;
     }
     .throw-tag {
-        font-size: 11px; font-weight: bold; color: gold; background: #222; 
-        padding: 1px 4px; border-radius: 3px; border: 1px solid #444; line-height: 1.2;
+        font-size: 13px; font-weight: bold; color: gold; background: #222; 
+        padding: 2px 6px; border-radius: 4px; border: 1px solid #444; line-height: 1.2;
     }
 
     .p1 .p-name { color: #ff3b3b; }
     .p2 .p-name { color: #00bfff; }
 
     /* --- CONTROLS --- */
-    #controls { max-width:440px; margin: 0 auto; padding: 0 5px; width: 100%; box-sizing: border-box; }
-    .btn-row { display:flex; justify-content:center; gap:5px; margin-bottom:5px; }
-    button { padding: 10px; font-size:14px; border-radius:6px; border:none; cursor:pointer; flex:1; background: #444; color: white; transition: 0.1s; user-select: none; }
+    #controls { max-width:440px; margin: 0 auto; padding: 0 10px; width: 100%; box-sizing: border-box; }
+    .btn-row { display:flex; justify-content:center; gap:8px; margin-bottom:10px; }
+    button { padding: 12px; font-size:15px; border-radius:8px; border:none; cursor:pointer; flex:1; background: #444; color: white; transition: 0.1s; user-select: none; }
     button.active { background: gold; color: black; font-weight:bold; }
-    button.func { background: #555; padding: 8px; font-size: 12px; }
+    button.func { background: #555; padding: 10px; font-size: 13px; }
     
     /* --- BOARD --- */
-    #board-container { flex-grow: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
-    #dartboard { width: 100%; height: 100%; max-height: 48vh; max-width: 480px; touch-action: none; }
+    #board-container { flex-grow: 1; display: flex; align-items: center; justify-content: center; min-height: 0; padding-bottom: 10px;}
+    #dartboard { width: 100%; height: 100%; max-height: 45vh; max-width: 480px; touch-action: none; }
     
-    #next-turn-container { width: 100%; max-width:440px; margin: 0 auto 5px auto; padding: 0 10px; box-sizing: border-box; }
-    button.next-turn { background: #2e7d32; color: white; width: 100%; font-weight: bold; font-size: 16px; border: 1px solid #4caf50; padding: 12px; border-radius: 8px;}
+    #next-turn-container { width: 100%; max-width:440px; margin: 0 auto 10px auto; padding: 0 10px; box-sizing: border-box; }
+    button.next-turn { background: #2e7d32; color: white; width: 100%; font-weight: bold; font-size: 18px; border: 1px solid #4caf50; padding: 15px; border-radius: 10px;}
     
-    #winner { font-size:28px; margin:15px 0; font-weight:bold; color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5); position:absolute; top: 40%; left:0; width:100%; z-index:100; pointer-events:none;}
+    #winner { font-size:32px; margin:15px 0; font-weight:bold; color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5); position:absolute; top: 40%; left:0; width:100%; z-index:100; pointer-events:none;}
 </style>
 </head>
 <body>
@@ -171,7 +172,7 @@ const ROTATION_OFFSET = -9;
 const BOARD_R = 180;
 const BULL_R = 38;
 
-// Checkout Tabelle (Gekürzt für Übersicht, Logik bleibt gleich)
+// Checkout Tabelle
 const checkouts = {
     170: "T20 T20 BULL", 167: "T20 T19 BULL", 164: "T20 T18 BULL", 161: "T20 T17 BULL", 160: "T20 T20 D20",
     158: "T20 T20 D19", 157: "T20 T19 D20", 156: "T20 T20 D18", 155: "T20 T19 D19", 154: "T20 T18 D20",
