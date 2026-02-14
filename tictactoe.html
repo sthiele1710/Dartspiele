@@ -198,18 +198,36 @@ function confirmReset(hard) { if(confirm("Spiel neu starten?")) resetGame(hard);
 
 function resetGame(hard=false) {
     history = [];
-    const nums = [...Array(20).keys()].map(i=>i+1).concat([25]);
-    if (hard) {
-        const others = nums.filter(n=>n!==25).sort(()=>Math.random()-0.5).slice(0,8);
-        fieldNumbers = Array.from({length:9},(_,i)=>i===4?25:others.pop());
-    } else {
-        fieldNumbers = nums.sort(()=>Math.random()-0.5).slice(0,9);
+    // 1. Pool erstellen
+    let nums = [...Array(20).keys()].map(i=>i+1).concat([25]);
+
+    // HILFSFUNKTION: Echter Zufallsmischer (Fisher-Yates)
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
     }
+
+    if (hard) {
+        // Hard Mode: Erst die Nicht-Bulls mischen, dann 8 nehmen + Bull
+        const others = nums.filter(n=>n!==25);
+        shuffle(others); // Richtig mischen
+        const selection = others.slice(0,8);
+        
+        // Bull an Position 5 (Index 4) einfügen
+        fieldNumbers = [...selection.slice(0,4), 25, ...selection.slice(4)];
+    } else {
+        // Normal Mode: Alles richtig mischen und die ersten 9 nehmen
+        shuffle(nums); // Richtig mischen
+        fieldNumbers = nums.slice(0,9);
+    }
+    
     p1.fill(0); p2.fill(0); currentPlayer=1; throwsLeft=3; multiplier=1; 
     gameOver=false; winningCombo=[];
     
-    // UI Reset
-    document.getElementById("winner").textContent = ""; // Text leeren
+    document.getElementById("winner").textContent = ""; 
     setMultiplier(1);
     updateUI();
 }
