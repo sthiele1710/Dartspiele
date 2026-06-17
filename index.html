@@ -115,8 +115,13 @@
         }
 
         window.onload = () => {
-            if(localStorage.getItem('dart_p1')) document.getElementById('p1Name').value = localStorage.getItem('dart_p1');
-            if(localStorage.getItem('dart_p2')) document.getElementById('p2Name').value = localStorage.getItem('dart_p2');
+            // Wenn noch nichts im Speicher ist, setze Steffen und Jakob als Default
+            if (!localStorage.getItem('dart_p1')) localStorage.setItem('dart_p1', 'Steffen');
+            if (!localStorage.getItem('dart_p2')) localStorage.setItem('dart_p2', 'Jakob');
+
+            // Fülle die Eingabefelder mit den gespeicherten Werten
+            document.getElementById('p1Name').value = localStorage.getItem('dart_p1');
+            document.getElementById('p2Name').value = localStorage.getItem('dart_p2');
         };
 
         function renderLeaderboard() {
