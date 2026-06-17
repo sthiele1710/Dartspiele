@@ -168,6 +168,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const isTournament = urlParams.get('tournament') === 'true';
 
 let name1, name2;
+let initialStarter = 1; // Standardmäßig fängt Spieler 1 an
 
 if (isTournament) {
     // Namen aus Turnier-Speicher
@@ -183,6 +184,12 @@ if (isTournament) {
     if(s1 !== null) {
         document.getElementById('seriesInfo').innerHTML = `Serie: <span style="color:#ff3b3b">${s1}</span> - <span style="color:#00bfff">${s2}</span> (First to ${target})`;
     }
+
+    // Welcher Spieler soll starten?
+    let starterParam = urlParams.get('starter');
+    if (starterParam === '2') {
+        initialStarter = 2;
+    }
 } else {
     // Normale Namen
     name1 = localStorage.getItem('dart_p1') || "Spieler 1";
@@ -190,7 +197,7 @@ if (isTournament) {
 }
 
 let fieldNumbers=[], p1=Array(9).fill(0), p2=Array(9).fill(0);
-let currentPlayer=1, throwsLeft=3, multiplier=1;
+let currentPlayer=initialStarter, throwsLeft=3, multiplier=1;
 let gameOver=false, winningCombo=[], history=[];
 
 // --- INIT & RESET ---
@@ -224,7 +231,13 @@ function resetGame(hard=false) {
         fieldNumbers = nums.slice(0,9);
     }
     
-    p1.fill(0); p2.fill(0); currentPlayer=1; throwsLeft=3; multiplier=1; 
+    p1.fill(0); p2.fill(0); throwsLeft=3; multiplier=1; 
+    
+    // Wichtig: Beim Reset (z.B. manuell über "Neu") wird wieder der definierte Startspieler genommen.
+    // Falls ihr aber wollt, dass der Verlierer anfängt etc., müsste das hier angepasst werden.
+    // Für das Turnier (bei dem die Seite neu geladen wird) passt initialStarter aber perfekt.
+    currentPlayer = initialStarter; 
+    
     gameOver=false; winningCombo=[];
     
     document.getElementById("winner").textContent = ""; 
