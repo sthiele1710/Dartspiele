@@ -51,8 +51,9 @@
     <h3>1. Spiel wählen</h3>
     <select id="gameSelect">
         <option value="x01.html">💯 X01 (501 / 301)</option>
-        <option value="cricket.html">🦗 Cricket</option> <option value="domination.html">🎯 Domination</option>
-        <option value="tictactoe.html">❌ Tic Tac Toe</option>
+        <option value="cricket.html">🦗 Cricket</option> 
+        <option value="domination.html">🎯 Domination</option>
+        <option value="tictactoe.html" selected>❌ Tic Tac Toe</option>
     </select>
 
     <h3>2. Modus</h3>
@@ -164,7 +165,12 @@
         let count = (mode === 'bestof') ? 2 : parseInt(document.getElementById('playerCount').value);
 
         for(let i=1; i<=count; i++) {
-            container.innerHTML += `<input type="text" id="p${i}" placeholder="Name Spieler ${i}" value="Spieler ${i}">`;
+            // Standardnamen für Spieler 1 und Spieler 2 festlegen
+            let defaultName = `Spieler ${i}`;
+            if (i === 1) defaultName = "Steffen";
+            if (i === 2) defaultName = "Jakob";
+            
+            container.innerHTML += `<input type="text" id="p${i}" placeholder="Name ${defaultName}" value="${defaultName}">`;
         }
     }
 
