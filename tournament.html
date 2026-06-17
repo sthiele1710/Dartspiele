@@ -165,10 +165,11 @@
         let count = (mode === 'bestof') ? 2 : parseInt(document.getElementById('playerCount').value);
 
         for(let i=1; i<=count; i++) {
-            // Standardnamen für Spieler 1 und Spieler 2 festlegen
             let defaultName = `Spieler ${i}`;
-            if (i === 1) defaultName = "Steffen";
-            if (i === 2) defaultName = "Jakob";
+            
+            // Hole die globalen Namen aus der index.html für P1 und P2
+            if (i === 1) defaultName = localStorage.getItem('dart_p1') || "Steffen";
+            if (i === 2) defaultName = localStorage.getItem('dart_p2') || "Jakob";
             
             container.innerHTML += `<input type="text" id="p${i}" placeholder="Name ${defaultName}" value="${defaultName}">`;
         }
