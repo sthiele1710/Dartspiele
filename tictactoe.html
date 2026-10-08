@@ -136,8 +136,14 @@
 <div id="seriesInfo"></div>
 
 <div id="status">
-    <span id="p1Label" class="player1">Spieler 1 (X)</span>
-    <span id="p2Label" class="player2">Spieler 2 (O)</span>
+    <div style="display:flex; flex-direction:column; align-items:flex-start;">
+        <span id="p1Label" class="player1">Spieler 1 (X)</span>
+        <span id="p1Avg" style="font-size:12px; color:#aaa; margin-top:3px;">Ø 0.0</span>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:flex-end;">
+        <span id="p2Label" class="player2">Spieler 2 (O)</span>
+        <span id="p2Avg" style="font-size:12px; color:#aaa; margin-top:3px;">Ø 0.0</span>
+    </div>
 </div>
 
 <div id="throwsDisplay">Würfe: 3</div>
