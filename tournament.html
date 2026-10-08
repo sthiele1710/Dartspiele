@@ -79,11 +79,13 @@
         <div class="score-part">
             <span id="boScore1" style="color:#ff3b3b">0</span>
             <span id="boName1" class="score-name">P1</span>
+            <span id="boAvg1" style="font-size:14px; color:#aaa; margin-top:5px;">Ø 0.00</span>
         </div>
         <span>:</span>
         <div class="score-part">
             <span id="boScore2" style="color:#00bfff">0</span>
             <span id="boName2" class="score-name">P2</span>
+            <span id="boAvg2" style="font-size:14px; color:#aaa; margin-top:5px;">Ø 0.00</span>
         </div>
     </div>
 
@@ -115,6 +117,22 @@
         togglePlayerCount(); 
         loadState();
         
+        // NEU: Letzte Spiel-Statistiken abgreifen und aufsummieren
+        const lastStatsStr = localStorage.getItem('tournament_last_game_stats');
+        if(lastStatsStr && tournament.active && tournament.mode === 'bestof') {
+            const lastStats = JSON.parse(lastStatsStr);
+            if (!tournament.boStats) tournament.boStats = [{ darts: 0, marks: 0 }, { darts: 0, marks: 0 }];
+            
+            // Werte aus TicTacToe zum Gesamt-Turnier hinzufügen
+            tournament.boStats[0].darts += (lastStats[1].darts || 0);
+            tournament.boStats[0].marks += (lastStats[1].marks || 0);
+            tournament.boStats[1].darts += (lastStats[2].darts || 0);
+            tournament.boStats[1].marks += (lastStats[2].marks || 0);
+            
+            localStorage.removeItem('tournament_last_game_stats'); // Danach löschen
+            saveState();
+        }
+
         const lastWinner = localStorage.getItem('tournament_winner_name');
         if(lastWinner && tournament.active) {
             localStorage.removeItem('tournament_winner_name');
@@ -200,6 +218,7 @@
     function initBestOf() {
         tournament.boTotal = parseInt(document.getElementById('playerCount').value);
         tournament.boScores = [0, 0];
+        tournament.boStats = [{ darts: 0, marks: 0 }, { darts: 0, marks: 0 }]; // <--- NEUE ZEILE
     }
 
     function renderBestOf() {
@@ -228,6 +247,20 @@
             let starterName = (played % 2 === 0) ? tournament.players[0] : tournament.players[1];
             status.innerText = `Spiel ${played + 1}: ${starterName} beginnt!`;
             btn.style.display = 'block';
+        }
+        // --- NEU: Turnierdurchschnitt berechnen und anzeigen ---
+        if (!tournament.boStats) tournament.boStats = [{ darts: 0, marks: 0 }, { darts: 0, marks: 0 }];
+        
+        let avg1 = tournament.boStats[0].darts > 0 ? ((tournament.boStats[0].marks / tournament.boStats[0].darts) * 3).toFixed(2) : "0.00";
+        let avg2 = tournament.boStats[1].darts > 0 ? ((tournament.boStats[1].marks / tournament.boStats[1].darts) * 3).toFixed(2) : "0.00";
+
+        // Nur anzeigen, wenn auch wirklich TicTacToe gespielt wird (bei X01 bleibt das Feld leer)
+        if (tournament.gameFile.includes("tictactoe")) {
+            document.getElementById('boAvg1').innerText = "Ø " + avg1;
+            document.getElementById('boAvg2').innerText = "Ø " + avg2;
+        } else {
+            document.getElementById('boAvg1').innerText = "";
+            document.getElementById('boAvg2').innerText = "";
         }
     }
 
