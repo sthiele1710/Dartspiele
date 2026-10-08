@@ -342,16 +342,27 @@ function renderBoard() {
 // --- GAMEPLAY ---
 function clickField(idx) {
     if (gameOver) return;
-    if (p1[idx] >= 4 || p2[idx] >= 4) return;
-    if (fieldNumbers[idx] === 25 && multiplier === 3) return;
+    if (p1[idx] >= 4 || p2[idx] >= 4) return; // Wenn schon jemand 4 hat, passiert gar nichts
+    if (fieldNumbers[idx] === 25 && multiplier === 3) return; // Kein Triple Bull
 
     if(navigator.vibrate) navigator.vibrate(30);
     snapshot();
-    stats[currentPlayer].darts++;
-    stats[currentPlayer].marks += multiplier;
 
-    if (currentPlayer === 1) p1[idx] = Math.min(4, p1[idx] + multiplier);
-    else p2[idx] = Math.min(4, p2[idx] + multiplier);
+    // 1. Berechnen, wie viele Treffer wirklich noch zählen
+    let actualMarks = 0;
+    
+    if (currentPlayer === 1) {
+        // Wie viel fehlt noch bis zur 4? Nimm den kleineren Wert: Was fehlt ODER was geworfen wurde.
+        actualMarks = Math.min(4 - p1[idx], multiplier); 
+        p1[idx] += actualMarks; // Treffer zum Feld hinzufügen
+    } else {
+        actualMarks = Math.min(4 - p2[idx], multiplier);
+        p2[idx] += actualMarks;
+    }
+
+    // 2. Stats aktualisieren (nur mit den TATSÄCHLICHEN Treffern)
+    stats[currentPlayer].darts++;
+    stats[currentPlayer].marks += actualMarks;
 
     throwsLeft--;
     endThrow();
