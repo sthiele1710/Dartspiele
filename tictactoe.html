@@ -203,6 +203,7 @@ if (isTournament) {
 }
 
 let fieldNumbers=[], p1=Array(9).fill(0), p2=Array(9).fill(0);
+let stats = { 1: { darts: 0, marks: 0 }, 2: { darts: 0, marks: 0 } };
 let currentPlayer=initialStarter, throwsLeft=3, multiplier=1;
 let gameOver=false, winningCombo=[], history=[];
 
