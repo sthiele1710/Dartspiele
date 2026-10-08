@@ -411,6 +411,7 @@ function checkWin() {
 
         if (isTournament) {
             localStorage.setItem('tournament_winner_name', winner);
+            localStorage.setItem('tournament_last_game_stats', JSON.stringify(stats)); // <--- NEUE ZEILE
             setTimeout(() => { window.location.href = "tournament.html"; }, 3000);
             return; 
         }
@@ -428,7 +429,8 @@ function checkWin() {
         
         // Kein Konfetti bei Unentschieden, nur Redirect im Turnier
         if (isTournament) {
-            localStorage.setItem('tournament_winner_name', 'draw'); // Spezielles Keyword
+            localStorage.setItem('tournament_winner_name', 'draw');
+            localStorage.setItem('tournament_last_game_stats', JSON.stringify(stats)); // <--- NEUE ZEILE
             setTimeout(() => { window.location.href = "tournament.html"; }, 3000);
             return;
         }
