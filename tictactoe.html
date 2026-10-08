@@ -239,6 +239,7 @@ function resetGame(hard=false) {
     }
     
     p1.fill(0); p2.fill(0); throwsLeft=3; multiplier=1; 
+    stats = { 1: { darts: 0, marks: 0 }, 2: { darts: 0, marks: 0 } };
     
     // Wichtig: Beim Reset (z.B. manuell über "Neu") wird wieder der definierte Startspieler genommen.
     // Falls ihr aber wollt, dass der Verlierer anfängt etc., müsste das hier angepasst werden.
@@ -255,7 +256,8 @@ function resetGame(hard=false) {
 // --- CORE LOGIC ---
 function snapshot() {
     history.push(JSON.parse(JSON.stringify({
-        p1, p2, currentPlayer, throwsLeft, multiplier, gameOver, winningCombo
+        p1, p2, currentPlayer, throwsLeft, multiplier, gameOver, winningCombo,
+        stats // <--- NEU: Stats werden mit gespeichert
     })));
 }
 
@@ -264,6 +266,9 @@ function undo() {
     const s = history.pop();
     p1=s.p1; p2=s.p2; currentPlayer=s.currentPlayer; throwsLeft=s.throwsLeft;
     multiplier=s.multiplier; gameOver=s.gameOver; winningCombo=s.winningCombo;
+    
+    // <--- NEU: Stats wiederherstellen (mit Fallback, falls der Snapshot alt ist)
+    stats = s.stats || { 1: { darts: 0, marks: 0 }, 2: { darts: 0, marks: 0 } }; 
     
     document.getElementById("winner").textContent = gameOver ? (winningCombo.length > 0 ? `🏆 GEWINNER!` : "🤝 UNENTSCHIEDEN") : "";
     updateUI();
@@ -285,7 +290,13 @@ function updateUI() {
     p2Label.textContent = `${name2} (O)`;
     p1Label.style.opacity = currentPlayer === 1 ? "1" : "0.3";
     p2Label.style.opacity = currentPlayer === 2 ? "1" : "0.3";
-
+    // --- NEU: Average (Marks per Round) berechnen & anzeigen ---
+    // Berechnung: (Gesamttreffer / Geworfene Pfeile) * 3 = Treffer pro Runde
+    let avg1 = stats[1].darts > 0 ? ((stats[1].marks / stats[1].darts) * 3).toFixed(2) : "0.00";
+    let avg2 = stats[2].darts > 0 ? ((stats[2].marks / stats[2].darts) * 3).toFixed(2) : "0.00";
+    
+    document.getElementById("p1Avg").textContent = "Ø " + avg1;
+    document.getElementById("p2Avg").textContent = "Ø " + avg2;
     document.getElementById("throwsDisplay").textContent = `Würfe: ${throwsLeft}`;
     
     // RAHMEN UPDATE
@@ -336,6 +347,8 @@ function clickField(idx) {
 
     if(navigator.vibrate) navigator.vibrate(30);
     snapshot();
+    stats[currentPlayer].darts++;
+    stats[currentPlayer].marks += multiplier;
 
     if (currentPlayer === 1) p1[idx] = Math.min(4, p1[idx] + multiplier);
     else p2[idx] = Math.min(4, p2[idx] + multiplier);
@@ -356,7 +369,13 @@ function endThrow() {
 
 function passTurn() {
     if (gameOver) return;
-    snapshot(); throwsLeft = 0; endThrow();
+    snapshot(); 
+    
+    // Die verbleibenden Würfe als Fehlwürfe (0 Treffer) eintragen
+    stats[currentPlayer].darts += throwsLeft;
+    
+    throwsLeft = 0; 
+    endThrow();
 }
 
 function checkWin() {
