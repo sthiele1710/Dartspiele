@@ -245,7 +245,7 @@ let localLastUpdate = 0;
 // --- 3. FIREBASE SYNC LOGIK ---
 function syncState() {
     if (!roomID) return; // Nur senden, wenn wir online spielen
-    localLastUpdate = Date.now();
+    localLastUpdate = Math.max(Date.now(), localLastUpdate + 1);
     set(ref(db, 'rooms/' + roomID + '/x01'), {
         scores, startOfTurnScore, stats, currentPlayer, currentRound, 
         throwsLeft, multiplier, gameOver, roundThrows, turnTotalPoints, 
