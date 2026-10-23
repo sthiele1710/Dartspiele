@@ -24,35 +24,28 @@
         
         input { width: 80%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: white; font-size: 16px; text-align: center; }
         
-        /* Buttons für die Spiele */
         .menu-btn { 
             display: flex; justify-content: space-between; align-items: center;
             background: #2a2a2a; color: white; text-decoration: none; 
             padding: 20px; margin: 15px auto; border-radius: 12px; 
             border-left: 8px solid gold; font-weight: bold; font-size: 18px;
-            transition: transform 0.1s, background 0.2s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            cursor: pointer;
+            transition: transform 0.1s, background 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); cursor: pointer;
         }
         .menu-btn:active { transform: scale(0.98); background: #333; }
         .icon { font-size: 20px; color: #666; }
 
-        .tournament-btn {
-            border-left-color: gold; 
-            background: linear-gradient(90deg, #332b00 0%, #2a2a2a 100%);
-            margin-top: 30px;
-        }
+        .tournament-btn { border-left-color: gold; background: linear-gradient(90deg, #332b00 0%, #2a2a2a 100%); margin-top: 30px; }
 
-        /* Remote Box */
-        .remote-box {
-            background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 15px; margin: 20px 0; text-align: left;
-        }
-        .toggle-label {
-            display: flex; align-items: center; font-weight: bold; color: gold; font-size: 16px; cursor: pointer;
-        }
+        /* NEUE Remote Box mit Enter-Button */
+        .remote-box { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 15px; margin: 20px 0; text-align: left; }
+        .toggle-label { display: flex; align-items: center; font-weight: bold; color: gold; font-size: 16px; cursor: pointer; }
         .toggle-label input { width: 20px; height: 20px; margin-right: 10px; margin-top: 0; margin-bottom: 0; }
         
-        /* Tabelle */
+        .join-area { display: flex; gap: 10px; margin-top: 10px; }
+        .join-area input { margin: 0; flex: 1; text-transform: uppercase; font-weight: bold; letter-spacing: 2px;}
+        .join-area button { background: #2e7d32; color: white; border: none; border-radius: 8px; padding: 0 20px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .join-area button:active { background: #1b5e20; }
+        
         table { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 13px; }
         th, td { padding: 10px 5px; border-bottom: 1px solid #333; text-align: center; }
         td:first-child, th:first-child { text-align: left; padding-left: 10px;}
@@ -73,36 +66,41 @@
         <input type="text" id="p1Name" placeholder="Name Spieler 1" oninput="saveNames()">
         <input type="text" id="p2Name" placeholder="Name Spieler 2" oninput="saveNames()">
 
-        <!-- NEU: Remote Bereich -->
+        <!-- NEU: Verbesserter Remote Bereich -->
         <div class="remote-box">
             <label class="toggle-label">
                 <input type="checkbox" id="remoteToggle" onchange="toggleRemoteUI()">
                 🌐 Online (Remote) spielen
             </label>
+            
             <div id="remoteUI" style="display: none; margin-top: 15px;">
-                <p style="font-size: 13px; color: #aaa; margin: 0 0 10px 0;">Lass das Feld leer, um einen neuen Raum zu erstellen, oder gib eine ID ein, um beizutreten:</p>
-                <input type="text" id="roomID" placeholder="Raum-ID (z.B. ABCD)" style="width: 100%; text-transform: uppercase; box-sizing: border-box;">
+                <div style="background: #222; padding: 15px; border-radius: 8px;">
+                    <p style="margin: 0; font-size: 14px; color: #aaa;">Raum beitreten:</p>
+                    <div class="join-area">
+                        <input type="text" id="joinID" placeholder="CODE (z.B. ABCD)" maxlength="4">
+                        <button onclick="joinRoom()">Enter</button>
+                    </div>
+                    <p id="joinError" style="color: #ff3b3b; font-size: 13px; margin: 10px 0 0 0; display: none; font-weight: bold;">Raum nicht gefunden!</p>
+                </div>
+                
+                <p style="text-align: center; font-size: 14px; color: #888; margin: 15px 0 5px 0;">Oder wähle ein Spiel, um einen Raum zu erstellen:</p>
             </div>
         </div>
         
-        <div style="margin-top: 20px;">
-            <div class="menu-btn" onclick="startGame('x01.html')" style="border-left-color: #00ff00;">
+        <div>
+            <div class="menu-btn" onclick="hostGame('x01.html')" style="border-left-color: #00ff00;">
                 <span>💯 X01 (501 / 301)</span> <span class="icon">❯</span>
             </div>
-
-            <div class="menu-btn" onclick="startGame('cricket.html')" style="border-left-color: #d500f9;">
+            <div class="menu-btn" onclick="hostGame('cricket.html')" style="border-left-color: #d500f9;">
                 <span>🦗 Cricket</span> <span class="icon">❯</span>
             </div>
-
-            <div class="menu-btn" onclick="startGame('domination.html')" style="border-left-color: #ff3b3b;">
+            <div class="menu-btn" onclick="hostGame('domination.html')" style="border-left-color: #ff3b3b;">
                 <span>🎯 Domination</span> <span class="icon">❯</span>
             </div>
-            
-            <div class="menu-btn" onclick="startGame('tictactoe.html')" style="border-left-color: #00bfff;">
+            <div class="menu-btn" onclick="hostGame('tictactoe.html')" style="border-left-color: #00bfff;">
                 <span>❌ Tic Tac Toe</span> <span class="icon">❯</span>
             </div>
-            
-            <div class="menu-btn tournament-btn" onclick="startGame('tournament.html')">
+            <div class="menu-btn tournament-btn" onclick="hostGame('tournament.html')">
                 <span>🏆 Turnier Modus</span> <span class="icon">❯</span>
             </div>
         </div>
@@ -111,16 +109,13 @@
     <div id="stats" class="content">
         <h1 style="color:gold; margin-top:0;">🏆 All-Time Siege</h1>
         <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>💯</th> <th>🦗</th> <th>🎯</th> <th>❌</th> </tr>
-            </thead>
+            <thead><tr><th>Name</th><th>💯</th> <th>🦗</th> <th>🎯</th> <th>❌</th> </tr></thead>
             <tbody id="leaderboard-body"></tbody>
         </table>
         <button onclick="clearStats()" style="margin-top:30px; background:none; border:none; color:#555; font-size:12px; padding: 20px; width:100%;">Statistiken zurücksetzen</button>
     </div>
 
+    <!-- Normales Skript für Tabs und Namen -->
     <script>
         function showTab(tabId) {
             document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
@@ -138,72 +133,86 @@
         window.onload = () => {
             if (!localStorage.getItem('dart_p1')) localStorage.setItem('dart_p1', 'Steffen');
             if (!localStorage.getItem('dart_p2')) localStorage.setItem('dart_p2', 'Jakob');
-
             document.getElementById('p1Name').value = localStorage.getItem('dart_p1');
             document.getElementById('p2Name').value = localStorage.getItem('dart_p2');
         };
 
-        // NEU: Remote UI umschalten
         function toggleRemoteUI() {
             const isChecked = document.getElementById('remoteToggle').checked;
             document.getElementById('remoteUI').style.display = isChecked ? 'block' : 'none';
         }
 
-        // NEU: Spiel starten und URL anpassen
-        function startGame(gameFile) {
-            const isRemote = document.getElementById('remoteToggle').checked;
-            
-            if (isRemote) {
-                let room = document.getElementById('roomID').value.trim().toUpperCase();
-                // Wenn keine ID eingegeben wurde, generiere eine 4-stellige zufällige ID
-                if (!room) {
-                    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-                    room = '';
-                    for (let i = 0; i < 4; i++) {
-                        room += chars.charAt(Math.floor(Math.random() * chars.length));
-                    }
-                }
-                // Hänge die ID als Parameter an die URL (z.B. x01.html?room=ABCD)
-                window.location.href = `${gameFile}?room=${room}`;
-            } else {
-                // Normales lokales Spiel
-                window.location.href = gameFile;
-            }
-        }
-
         function renderLeaderboard() {
             const stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
             const entries = Object.entries(stats);
-            
             entries.sort((a, b) => {
-                const dataA = typeof a[1] === 'number' ? {dart: a[1]} : a[1];
-                const dataB = typeof b[1] === 'number' ? {dart: b[1]} : b[1];
-
-                const totalA = (dataA.x01 || 0) + (dataA.cricket || 0) + (dataA.dart || 0) + (dataA.ttt || 0);
-                const totalB = (dataB.x01 || 0) + (dataB.cricket || 0) + (dataB.dart || 0) + (dataB.ttt || 0);
-                
+                const totalA = ((a[1].x01||0) + (a[1].cricket||0) + (a[1].dart||0) + (a[1].ttt||0));
+                const totalB = ((b[1].x01||0) + (b[1].cricket||0) + (b[1].dart||0) + (b[1].ttt||0));
                 return totalB - totalA;
             });
-
-            const body = document.getElementById('leaderboard-body');
-            body.innerHTML = entries.map(([name, rawData]) => {
-                const data = typeof rawData === 'number' ? { dart: rawData } : rawData;
-                return `<tr>
-                    <td>${name}</td>
-                    <td class="num">${data.x01 || 0}</td>
-                    <td class="num">${data.cricket || 0}</td>
-                    <td class="num">${data.dart || 0}</td>
-                    <td class="num">${data.ttt || 0}</td>
-                </tr>`;
+            document.getElementById('leaderboard-body').innerHTML = entries.map(([name, data]) => {
+                return `<tr><td>${name}</td><td class="num">${data.x01||0}</td><td class="num">${data.cricket||0}</td><td class="num">${data.dart||0}</td><td class="num">${data.ttt||0}</td></tr>`;
             }).join('');
         }
 
         function clearStats() {
-            if(confirm("Wirklich alle Statistiken löschen?")) {
-                localStorage.removeItem('allTimeStats');
-                renderLeaderboard();
-            }
+            if(confirm("Wirklich alle Statistiken löschen?")) { localStorage.removeItem('allTimeStats'); renderLeaderboard(); }
         }
+    </script>
+
+    <!-- Firebase Modul für die Lobby -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+        import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4qDkDED5f2QlzxIzgz21qlk4uEQrfxHs",
+            authDomain: "wg-darts.firebaseapp.com",
+            databaseURL: "https://wg-darts-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "wg-darts",
+            storageBucket: "wg-darts.firebasestorage.app",
+            messagingSenderId: "750116064641",
+            appId: "1:750116064641:web:cc610da60feb3000e62c80"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Hosten eines Spiels (schreibt das gewählte Spiel in die Lobby)
+        window.hostGame = function(gameFile) {
+            const isRemote = document.getElementById('remoteToggle').checked;
+            if (isRemote) {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let room = '';
+                for (let i = 0; i < 4; i++) room += chars.charAt(Math.floor(Math.random() * chars.length));
+                
+                // Wir speichern kurz in Firebase, welches Spiel dieser Raum spielt
+                set(ref(db, 'lobbies/' + room), { game: gameFile }).then(() => {
+                    window.location.href = `${gameFile}?room=${room}`;
+                });
+            } else {
+                window.location.href = gameFile; // Ganz normales lokales Spiel
+            }
+        };
+
+        // Beitreten über den Enter-Button
+        window.joinRoom = function() {
+            let room = document.getElementById('joinID').value.trim().toUpperCase();
+            if (!room) return;
+            
+            document.getElementById('joinError').style.display = 'none';
+            
+            // Wir fragen Firebase, welches Spiel in diesem Raum läuft
+            get(child(ref(db), `lobbies/${room}`)).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const gameFile = snapshot.val().game;
+                    window.location.href = `${gameFile}?room=${room}`;
+                } else {
+                    document.getElementById('joinError').style.display = 'block';
+                }
+            }).catch((error) => {
+                console.error(error);
+            });
+        };
     </script>
 </body>
 </html>
