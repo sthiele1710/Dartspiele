@@ -97,8 +97,9 @@
 <button id="passBtn" onclick="passTurn()">⏭️ Zug beenden / Verfehlt</button>
 
 <script type="module">
+// WICHTIG: get wurde hier im Import hinzugefügt!
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js";
+import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB4qDkDED5f2QlzxIzgz21qlk4uEQrfxHs",
@@ -285,8 +286,10 @@ function renderBoard() {
     const board = document.getElementById("board");
     board.innerHTML = "";
     
-    // Sicherheits-Check: Falls fieldNumbers noch leer ist (passiert manchmal beim allerersten Firebase-Laden)
-    if (fieldNumbers.length === 0) return; 
+    if (fieldNumbers.length === 0) {
+        board.innerHTML = "<div style='grid-column: span 3; color: #888; margin-top:20px; font-weight: bold;'>Lade Spielfeld...</div>";
+        return; 
+    }
 
     for (let i=0; i<9; i++) {
         const c = document.createElement("div"); c.className = "cell";
@@ -405,12 +408,21 @@ function saveWin(winnerName) {
 
 document.addEventListener('click', async () => { if ('wakeLock' in navigator) try { await navigator.wakeLock.request('screen'); } catch (err) {} }, { once: true });
 
-// WICHTIG: Erlaubt dem HTML-Code, auf diese Funktionen zuzugreifen
 window.clickField = clickField; window.setMultiplier = setMultiplier; window.undo = undo;
 window.passTurn = passTurn; window.confirmReset = confirmReset; window.resetGame = resetGame;
 
-// Spiel direkt starten
-resetGame();
+// NEUER START-LOGIK BLOCK (Gäste generieren kein eigenes Spielfeld mehr)
+if (roomID) {
+    const isHost = (!roomID || localStorage.getItem('wg_room_host') === roomID);
+    get(ref(db, 'rooms/' + roomID + '/ttt')).then((snapshot) => {
+        if (!snapshot.exists() && isHost) {
+            resetGame(); // Nur Host darf das initiale Feld generieren
+        }
+    });
+} else {
+    resetGame(); // Lokales Spiel
+}
+
 </script>
 </body>
 </html>
