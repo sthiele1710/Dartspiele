@@ -138,10 +138,10 @@ if (roomID) {
 
 let fieldNumbers=[], p1=Array(9).fill(0), p2=Array(9).fill(0);
 let stats = { 1: { darts: 0, marks: 0 }, 2: { darts: 0, marks: 0 } };
-let currentPlayer=initialStarter, throwsLeft=3, multiplier=1;
-let gameOver=false, winningCombo=[], history=[];
+let currentPlayer = initialStarter, throwsLeft = 3, multiplier = 1;
+let gameOver = false, winningCombo = [], history = [];
 
-// --- FIREBASE SYNC LOGIK ---
+// --- FIREBASE SYNC ---
 const myDeviceID = Math.random().toString(36).substring(2, 15);
 let syncVersion = 0;
 
@@ -164,9 +164,9 @@ if (roomID) {
         if (data.version > syncVersion) {
             syncVersion = data.version;
             
-            fieldNumbers = data.fieldNumbers || [];
-            p1 = data.p1 || Array(9).fill(0);
-            p2 = data.p2 || Array(9).fill(0);
+            fieldNumbers = data.fieldNumbers || fieldNumbers;
+            p1 = data.p1 || p1;
+            p2 = data.p2 || p2;
             
             stats = data.stats || {};
             if (!stats[1]) stats[1] = { darts: 0, marks: 0 };
@@ -183,8 +183,6 @@ if (roomID) {
             document.getElementById("tripleBtn").classList.toggle("active", multiplier===3);
 
             updateUI();
-
-            // Löst visuelle Effekte & das Speichern beim Empfänger aus, falls das Spiel beendet wurde
             if (gameOver) checkWin(); 
         }
     });
@@ -213,10 +211,11 @@ function resetGame(hard=false) {
         fieldNumbers = nums.slice(0,9);
     }
     
-    p1.fill(0); p2.fill(0); throwsLeft=3; multiplier=1; 
+    p1 = Array(9).fill(0); p2 = Array(9).fill(0); 
+    throwsLeft = 3; multiplier = 1; 
     stats = { 1: { darts: 0, marks: 0 }, 2: { darts: 0, marks: 0 } };
     currentPlayer = initialStarter; 
-    gameOver=false; winningCombo=[];
+    gameOver = false; winningCombo = [];
     document.getElementById("winner").textContent = ""; 
     
     document.getElementById("singleBtn").classList.toggle("active", true);
@@ -236,8 +235,8 @@ function snapshot() {
 function undo() {
     if (!history.length || gameOver) return;
     const s = history.pop();
-    p1=s.p1; p2=s.p2; currentPlayer=s.currentPlayer; throwsLeft=s.throwsLeft;
-    multiplier=s.multiplier; gameOver=s.gameOver; winningCombo=s.winningCombo;
+    p1 = s.p1; p2 = s.p2; currentPlayer = s.currentPlayer; throwsLeft = s.throwsLeft;
+    multiplier = s.multiplier; gameOver = s.gameOver; winningCombo = s.winningCombo;
     stats = s.stats || { 1: { darts: 0, marks: 0 }, 2: { darts: 0, marks: 0 } }; 
     
     document.getElementById("winner").textContent = "";
@@ -266,4 +265,152 @@ function updateUI() {
     p2Label.style.opacity = currentPlayer === 2 ? "1" : "0.3";
 
     let avg1 = stats[1].darts > 0 ? ((stats[1].marks / stats[1].darts) * 3).toFixed(2) : "0.00";
-    let avg2 = stats[2].darts > 0 ? ((stats[2].marks / stats[2].dart
+    let avg2 = stats[2].darts > 0 ? ((stats[2].marks / stats[2].darts) * 3).toFixed(2) : "0.00";
+    document.getElementById("p1Avg").textContent = "Ø " + avg1;
+    document.getElementById("p2Avg").textContent = "Ø " + avg2;
+    document.getElementById("throwsDisplay").textContent = `Würfe: ${throwsLeft}`;
+    
+    const border = document.getElementById("game-border");
+    if (gameOver) {
+        if (winningCombo.length > 0) border.className = "winner-glow";
+        else border.className = "draw-glow"; 
+    } else {
+        border.className = (currentPlayer === 1) ? "turn-p1" : "turn-p2";
+    }
+
+    renderBoard();
+}
+
+function renderBoard() {
+    const board = document.getElementById("board");
+    board.innerHTML = "";
+    
+    // Sicherheits-Check: Falls fieldNumbers noch leer ist (passiert manchmal beim allerersten Firebase-Laden)
+    if (fieldNumbers.length === 0) return; 
+
+    for (let i=0; i<9; i++) {
+        const c = document.createElement("div"); c.className = "cell";
+        if (winningCombo.includes(i)) c.classList.add("winner-cell");
+
+        if (p1[i] >= 4) { c.innerHTML = `<div class="complete x">X</div>`; } 
+        else if (p2[i] >= 4) { c.innerHTML = `<div class="complete o">O</div>`; } 
+        else {
+            c.innerHTML = `<div class="x_hits">${"X".repeat(p1[i] || 0)}</div><div class="number">${fieldNumbers[i]}</div><div class="o_hits">${"O".repeat(p2[i] || 0)}</div>`;
+        }
+        c.onclick = () => clickField(i);
+        board.appendChild(c);
+    }
+}
+
+function clickField(idx) {
+    if (gameOver || throwsLeft <= 0) return;
+    if (p1[idx] >= 4 || p2[idx] >= 4) return; 
+    if (fieldNumbers[idx] === 25 && multiplier === 3) return; 
+
+    if(navigator.vibrate) navigator.vibrate(30);
+    snapshot();
+
+    let actualMarks = 0;
+    if (currentPlayer === 1) {
+        actualMarks = Math.min(4 - p1[idx], multiplier); 
+        p1[idx] += actualMarks; 
+    } else {
+        actualMarks = Math.min(4 - p2[idx], multiplier);
+        p2[idx] += actualMarks;
+    }
+
+    stats[currentPlayer].darts++;
+    stats[currentPlayer].marks += actualMarks;
+    throwsLeft--;
+    
+    multiplier = 1; 
+    document.getElementById("singleBtn").classList.toggle("active", true);
+    document.getElementById("doubleBtn").classList.toggle("active", false);
+    document.getElementById("tripleBtn").classList.toggle("active", false);
+
+    checkWin();
+    if (!gameOver && throwsLeft === 0) {
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        throwsLeft = 3;
+    }
+    updateUI();
+    syncState();
+}
+
+function passTurn() {
+    if (gameOver || throwsLeft <= 0) return;
+    snapshot(); 
+    stats[currentPlayer].darts += throwsLeft;
+    throwsLeft = 0; 
+    
+    multiplier = 1; 
+    document.getElementById("singleBtn").classList.toggle("active", true);
+    document.getElementById("doubleBtn").classList.toggle("active", false);
+    document.getElementById("tripleBtn").classList.toggle("active", false);
+
+    checkWin();
+    if (!gameOver) {
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        throwsLeft = 3;
+    }
+    updateUI();
+    syncState();
+}
+
+function checkWin() {
+    const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    let winner = null;
+
+    for (const w of wins) {
+        if (w.every(i => p1[i] >= 4)) { winningCombo = w; winner = name1; }
+        else if (w.every(i => p2[i] >= 4)) { winningCombo = w; winner = name2; }
+    }
+
+    if (winner) {
+        gameOver = true;
+        document.getElementById("winner").textContent = `🏆 ${winner} GEWINNT!`;
+        document.getElementById("winner").style.color = "#00ff00";
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        saveWin(winner);
+        
+        if (isTournament) {
+            localStorage.setItem('tournament_winner_name', winner);
+            localStorage.setItem('tournament_last_game_stats', JSON.stringify(stats)); 
+            setTimeout(() => { window.location.href = "tournament.html"; }, 3000);
+        }
+        return;
+    }
+
+    const allClosed = fieldNumbers.every((_, i) => p1[i] >= 4 || p2[i] >= 4);
+    if (allClosed) {
+        gameOver = true;
+        document.getElementById("winner").textContent = "🤝 UNENTSCHIEDEN!";
+        document.getElementById("winner").style.color = "#cccccc"; 
+        
+        if (isTournament) {
+            localStorage.setItem('tournament_winner_name', 'draw');
+            localStorage.setItem('tournament_last_game_stats', JSON.stringify(stats));
+            setTimeout(() => { window.location.href = "tournament.html"; }, 3000);
+        }
+    }
+}
+
+function saveWin(winnerName) {
+    let allStats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
+    if (!allStats[winnerName]) allStats[winnerName] = { dart: 0, ttt: 0, x01: 0 };
+    if (typeof allStats[winnerName] === 'number') allStats[winnerName] = { dart: allStats[winnerName], ttt: 0, x01: 0 };
+    allStats[winnerName].ttt = (allStats[winnerName].ttt || 0) + 1;
+    localStorage.setItem('allTimeStats', JSON.stringify(allStats));
+}
+
+document.addEventListener('click', async () => { if ('wakeLock' in navigator) try { await navigator.wakeLock.request('screen'); } catch (err) {} }, { once: true });
+
+// WICHTIG: Erlaubt dem HTML-Code, auf diese Funktionen zuzugreifen
+window.clickField = clickField; window.setMultiplier = setMultiplier; window.undo = undo;
+window.passTurn = passTurn; window.confirmReset = confirmReset; window.resetGame = resetGame;
+
+// Spiel direkt starten
+resetGame();
+</script>
+</body>
+</html>
