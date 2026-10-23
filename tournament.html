@@ -73,7 +73,6 @@
         <button class="primary" onclick="startTournament()">Turnier Starten</button>
     </div>
     
-    <!-- Ansicht für den Gast -->
     <div id="guestSetup" class="hidden" style="margin: 40px 0;">
         <h3 style="color:#00ff00;">✅ Verbunden!</h3>
         <p style="color:#aaa;">Warte darauf, dass der Host das Turnier einstellt und startet...</p>
@@ -153,7 +152,6 @@
         document.getElementById('roomNameDisplay').textContent = roomID;
     }
 
-    // Identifikation: Bin ich der Ersteller (Host) oder der Beigetretene (Gast)?
     const isHost = (!roomID || localStorage.getItem('wg_room_host') === roomID);
 
     let tournament = { 
@@ -164,7 +162,7 @@
 
     const myDeviceID = Math.random().toString(36).substring(2, 15);
     let syncVersion = 0;
-    let hasReceivedData = false; // Neu: Prüft ob wir schonmal Daten vom Host hatten
+    let hasReceivedData = false; 
 
     function saveState() { 
         localStorage.setItem('wg_tournament_data', JSON.stringify(tournament)); 
@@ -182,21 +180,18 @@
     }
 
     if (roomID) {
-        // 1. Lauschen auf den Turnier-Stand
         onValue(ref(db, 'rooms/' + roomID + '/tournament_state'), (snapshot) => {
             const data = snapshot.val();
             
-            // Wenn der Host das Turnier beendet, löscht er den Knoten in Firebase (data wird null)
             if (!data) {
                 if (!isHost && hasReceivedData) {
                     alert("Der Host hat das Turnier beendet.");
                     goHome();
                 }
-                // Wenn wir noch nie Daten hatten (beim ersten Betreten), machen wir einfach nichts und warten.
                 return;
             }
 
-            hasReceivedData = true; // Wir haben nun gültige Daten empfangen
+            hasReceivedData = true;
 
             if (data.sender === myDeviceID) return;
             
@@ -212,7 +207,6 @@
             }
         });
 
-        // 2. Lauschen auf den Spielstart (für den Gast)
         onValue(ref(db, 'rooms/' + roomID + '/active_match'), (snapshot) => {
             const data = snapshot.val();
             if (!data) return;
@@ -221,7 +215,6 @@
             if (data.ts > lastTs) {
                 localStorage.setItem('last_redirect_ts', data.ts);
                 
-                // Namen vom Host für das anstehende Spiel lokal übernehmen
                 if (data.p1) localStorage.setItem('tournament_p1', data.p1);
                 if (data.p2) localStorage.setItem('tournament_p2', data.p2);
                 
@@ -231,11 +224,9 @@
     }
 
     window.onload = function() {
-        // Trennung von Host und Gast beim Setup
         if (!isHost) {
             document.getElementById('hostSetup').style.display = 'none';
             document.getElementById('guestSetup').style.display = 'block';
-            // WICHTIG: Gast löscht beim Betreten sofort seine alten lokalen Turnierdaten!
             localStorage.removeItem('wg_tournament_data');
         } else {
             togglePlayerCount(); 
@@ -243,7 +234,6 @@
         
         loadState();
         
-        // Letzte Spiel-Statistiken abgreifen (nur Host)
         const lastStatsStr = localStorage.getItem('tournament_last_game_stats');
         if(lastStatsStr && tournament.active && tournament.mode === 'bestof') {
             const lastStats = JSON.parse(lastStatsStr);
@@ -259,12 +249,14 @@
             localStorage.removeItem('tournament_last_game_stats'); 
         }
 
-        // Gewinner des letzten Spiels eintragen (nur Host)
         const lastWinner = localStorage.getItem('tournament_winner_name');
         if(lastWinner && tournament.active) {
             localStorage.removeItem('tournament_winner_name');
             if (isHost) {
                 processWin(lastWinner);
+                // WICHTIG: Wenn das Spiel vorbei ist, löscht der Host das "aktive Spiel"
+                // aus der Datenbank, damit Nachzügler sauber in der Lobby landen.
+                if (roomID) set(ref(db, 'rooms/' + roomID + '/active_match'), null);
             }
         }
     };
@@ -484,7 +476,6 @@
             url += `&room=${roomID}`;
             const ts = Date.now();
             localStorage.setItem('last_redirect_ts', ts);
-            // Sende die URL inkl. Spielernamen an den Gast
             set(ref(db, 'rooms/' + roomID + '/active_match'), { url: url, ts: ts, p1: p1, p2: p2 }).then(() => {
                 window.location.href = url;
             });
@@ -530,9 +521,10 @@
         if(confirm("Turnier wirklich beenden?")) { 
             localStorage.removeItem('wg_tournament_data'); 
             if (isHost && roomID) {
-                // Lösche die Turnier-Daten aus Firebase -> löst bei Gästen das Beenden aus!
+                // Bereinigt die Datenbank, Gäste fliegen sauber raus
                 set(ref(db, 'rooms/' + roomID + '/tournament_state'), null);
                 set(ref(db, 'rooms/' + roomID + '/active_match'), null);
+                set(ref(db, 'lobbies/' + roomID), null);
             }
             goHome(); 
         } 
