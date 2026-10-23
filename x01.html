@@ -243,13 +243,20 @@ let autoTurnTimer = null;
 let localLastUpdate = 0;
 
 // --- 3. FIREBASE SYNC LOGIK ---
+// Jeder Browser bekommt beim Laden eine einzigartige ID
+const myDeviceID = Math.random().toString(36).substring(2, 15);
+let lastServerTimestamp = 0;
+
 function syncState() {
-    if (!roomID) return; // Nur senden, wenn wir online spielen
-    localLastUpdate = Math.max(Date.now(), localLastUpdate + 1);
+    if (!roomID) return;
+    
+    // Wir hängen unsere Device-ID und einen Zeitstempel an die Daten
+    const currentUpdate = Date.now();
     set(ref(db, 'rooms/' + roomID + '/x01'), {
         scores, startOfTurnScore, stats, currentPlayer, currentRound, 
         throwsLeft, multiplier, gameOver, roundThrows, turnTotalPoints, 
-        lastUpdate: localLastUpdate
+        sender: myDeviceID,
+        timestamp: currentUpdate
     });
 }
 
@@ -257,9 +264,26 @@ function syncState() {
 if (roomID) {
     onValue(ref(db, 'rooms/' + roomID + '/x01'), (snapshot) => {
         const data = snapshot.val();
-        if (data && data.lastUpdate > localLastUpdate) {
-            localLastUpdate = data.lastUpdate;
+        
+        // Nichts tun, wenn keine Daten da sind
+        if (!data) return;
+        
+        // WICHTIG: Wenn das Update von uns selbst hochgeladen wurde, 
+        // ignorieren wir es. Wir verhindern so, dass das Spiel durch sein eigenes Echo "zurückspringt".
+        if (data.sender === myDeviceID) return;
+
+        // Wir übernehmen das Update nur, wenn es neuer ist als das letzte, das wir verarbeitet haben
+        if (data.timestamp > lastServerTimestamp) {
+            lastServerTimestamp = data.timestamp;
             
+            // WICHTIG: Falls hier lokal noch ein 1-Sekunden-Wechsel-Timer lief, 
+            // müssen wir ihn SOFORT abbrechen, da die Server-Daten jetzt Chef sind!
+            if (autoTurnTimer) {
+                clearTimeout(autoTurnTimer);
+                autoTurnTimer = null;
+            }
+
+            // Alle Daten 1:1 vom Server übernehmen
             scores = data.scores || scores;
             startOfTurnScore = data.startOfTurnScore || startOfTurnScore;
             stats = data.stats || stats;
@@ -271,12 +295,13 @@ if (roomID) {
             roundThrows = data.roundThrows || { 1: [], 2: [] };
             turnTotalPoints = data.turnTotalPoints || 0;
 
+            // Oberfläche zwingend neu zeichnen
             document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
             setMulti(multiplier);
             updateUI();
 
+            // Sieg-Bedingung prüfen, falls das Spiel auf dem anderen Gerät beendet wurde
             if (gameOver && (scores[1] === 0 || scores[2] === 0)) {
-                // Wenn das Spiel drüben beendet wurde, Siegesgrafik hier auch anzeigen
                 let winnerName = (scores[1] === 0) ? name1 : name2;
                 document.getElementById("winner").textContent = `🏆 ${winnerName} CHECKOUT!`;
                 document.getElementById('game-border').className = "winner-glow";
