@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -157,7 +158,6 @@
         }
     </script>
 
-    <!-- Firebase Modul für die Lobby -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
         import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js";
@@ -174,7 +174,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Hosten eines Spiels 
         window.hostGame = function(gameFile) {
             const isRemote = document.getElementById('remoteToggle').checked;
             if (isRemote) {
@@ -183,7 +182,6 @@
                 for (let i = 0; i < 4; i++) room += chars.charAt(Math.floor(Math.random() * chars.length));
                 
                 set(ref(db, 'lobbies/' + room), { game: gameFile }).then(() => {
-                    // WICHTIG: Setze den Ersteller als Host!
                     localStorage.setItem('wg_room_host', room);
                     window.location.href = `${gameFile}?room=${room}`;
                 });
@@ -193,7 +191,7 @@
             }
         };
 
-        // Beitreten über den Enter-Button
+        // HIER IST DAS NEUE DIREKT-BEITRETEN-SYSTEM
         window.joinRoom = function() {
             let room = document.getElementById('joinID').value.trim().toUpperCase();
             if (!room) return;
@@ -203,15 +201,36 @@
             get(child(ref(db), `lobbies/${room}`)).then((snapshot) => {
                 if (snapshot.exists()) {
                     const gameFile = snapshot.val().game;
-                    // WICHTIG: Gast ist NICHT der Host!
-                    localStorage.removeItem('wg_room_host');
-                    window.location.href = `${gameFile}?room=${room}`;
+                    
+                    // Host-Status nur ablegen, wenn es nicht der eigene Raum ist
+                    if (localStorage.getItem('wg_room_host') !== room) {
+                        localStorage.removeItem('wg_room_host');
+                    }
+                    // WICHTIG: Setzt die Schranke zurück
+                    localStorage.removeItem('last_redirect_ts'); 
+                    
+                    // Prüfen, ob wir im Turnier direkt in ein aktives Spiel springen können
+                    if (gameFile.includes('tournament')) {
+                        get(child(ref(db), `rooms/${room}/active_match`)).then((matchSnap) => {
+                            if (matchSnap.exists()) {
+                                // Match läuft! Wir holen uns die Namen und springen direkt rein.
+                                const matchData = matchSnap.val();
+                                if (matchData.p1) localStorage.setItem('tournament_p1', matchData.p1);
+                                if (matchData.p2) localStorage.setItem('tournament_p2', matchData.p2);
+                                localStorage.setItem('last_redirect_ts', matchData.ts);
+                                window.location.href = matchData.url;
+                            } else {
+                                // Kein Match läuft, wir gehen ganz normal in die Lobby.
+                                window.location.href = `${gameFile}?room=${room}`;
+                            }
+                        });
+                    } else {
+                        window.location.href = `${gameFile}?room=${room}`;
+                    }
                 } else {
                     document.getElementById('joinError').style.display = 'block';
                 }
-            }).catch((error) => {
-                console.error(error);
-            });
+            }).catch((error) => console.error(error));
         };
     </script>
 </body>
