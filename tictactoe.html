@@ -91,13 +91,10 @@
 </div>
 
 <div id="winner"></div>
-
 <div id="board"></div>
-
 <button id="passBtn" onclick="passTurn()">⏭️ Zug beenden / Verfehlt</button>
 
 <script type="module">
-// WICHTIG: get wurde hier im Import hinzugefügt!
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
 import { getDatabase, ref, set, onValue, get } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js";
 
@@ -142,7 +139,6 @@ let stats = { 1: { darts: 0, marks: 0 }, 2: { darts: 0, marks: 0 } };
 let currentPlayer = initialStarter, throwsLeft = 3, multiplier = 1;
 let gameOver = false, winningCombo = [], history = [];
 
-// --- FIREBASE SYNC ---
 const myDeviceID = Math.random().toString(36).substring(2, 15);
 let syncVersion = 0;
 
@@ -166,17 +162,14 @@ if (roomID) {
             syncVersion = data.version;
             
             fieldNumbers = data.fieldNumbers || fieldNumbers;
-            p1 = data.p1 || p1;
-            p2 = data.p2 || p2;
+            p1 = data.p1 || p1; p2 = data.p2 || p2;
             
             stats = data.stats || {};
             if (!stats[1]) stats[1] = { darts: 0, marks: 0 };
             if (!stats[2]) stats[2] = { darts: 0, marks: 0 };
 
-            currentPlayer = data.currentPlayer;
-            throwsLeft = data.throwsLeft;
-            multiplier = data.multiplier;
-            gameOver = data.gameOver;
+            currentPlayer = data.currentPlayer; throwsLeft = data.throwsLeft;
+            multiplier = data.multiplier; gameOver = data.gameOver;
             winningCombo = data.winningCombo || [];
 
             document.getElementById("singleBtn").classList.toggle("active", multiplier===1);
@@ -245,8 +238,7 @@ function undo() {
     document.getElementById("doubleBtn").classList.toggle("active", multiplier===2);
     document.getElementById("tripleBtn").classList.toggle("active", multiplier===3);
 
-    updateUI();
-    syncState();
+    updateUI(); syncState();
 }
 
 function setMultiplier(m) {
@@ -278,7 +270,6 @@ function updateUI() {
     } else {
         border.className = (currentPlayer === 1) ? "turn-p1" : "turn-p2";
     }
-
     renderBoard();
 }
 
@@ -336,8 +327,7 @@ function clickField(idx) {
         currentPlayer = currentPlayer === 1 ? 2 : 1;
         throwsLeft = 3;
     }
-    updateUI();
-    syncState();
+    updateUI(); syncState();
 }
 
 function passTurn() {
@@ -356,8 +346,7 @@ function passTurn() {
         currentPlayer = currentPlayer === 1 ? 2 : 1;
         throwsLeft = 3;
     }
-    updateUI();
-    syncState();
+    updateUI(); syncState();
 }
 
 function checkWin() {
@@ -411,16 +400,25 @@ document.addEventListener('click', async () => { if ('wakeLock' in navigator) tr
 window.clickField = clickField; window.setMultiplier = setMultiplier; window.undo = undo;
 window.passTurn = passTurn; window.confirmReset = confirmReset; window.resetGame = resetGame;
 
-// NEUER START-LOGIK BLOCK (Gäste generieren kein eigenes Spielfeld mehr)
+// HIER IST DER FIX: Die verbesserte Start-Logik
 if (roomID) {
     const isHost = (!roomID || localStorage.getItem('wg_room_host') === roomID);
     get(ref(db, 'rooms/' + roomID + '/ttt')).then((snapshot) => {
-        if (!snapshot.exists() && isHost) {
-            resetGame(); // Nur Host darf das initiale Feld generieren
+        const data = snapshot.val();
+        
+        if (data && data.version) {
+            syncVersion = data.version;
+        }
+        
+        if (isHost) {
+            // Host mischt neu, wenn es noch kein Spiel gibt ODER das alte beendet war (Neue Runde!)
+            if (!data || data.gameOver) {
+                resetGame(); 
+            }
         }
     });
 } else {
-    resetGame(); // Lokales Spiel
+    resetGame(); 
 }
 
 </script>
