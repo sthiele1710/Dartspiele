@@ -15,125 +15,53 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <style>
-    body {
-        font-family: system-ui, sans-serif;
-        background: #1a1a1a;
-        color: white;
-        margin: 0;
-        padding: 10px;
-        text-align: center;
-        touch-action: manipulation;
-        padding-bottom: 30px;
-        box-sizing: border-box;
-        min-height: 100vh;
-    }
+    body { font-family: system-ui, sans-serif; background: #1a1a1a; color: white; margin: 0; padding: 10px; text-align: center; touch-action: manipulation; padding-bottom: 30px; box-sizing: border-box; min-height: 100vh; }
 
-    /* --- DER LEUCHTENDE RAND (Overlay) --- */
-    #game-border {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none; /* Klicks gehen durch! */
-        z-index: 9999;
-        box-sizing: border-box;
-        border: 0px solid transparent;
-        transition: box-shadow 0.8s ease-in-out, border-color 0.8s ease-in-out;
-    }
-    
-    /* Rand-Effekte */
-    #game-border.turn-p1 {
-        box-shadow: inset 0 0 50px rgba(255, 59, 59, 0.4);
-        border: 4px solid rgba(255, 59, 59, 0.3);
-    }
-    #game-border.turn-p2 {
-        box-shadow: inset 0 0 50px rgba(0, 191, 255, 0.4);
-        border: 4px solid rgba(0, 191, 255, 0.3);
-    }
-    #game-border.winner-glow {
-        box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.7);
-        border: 6px solid gold;
-    }
-    /* Unentschieden Glow (Grau/Weiß) */
-    #game-border.draw-glow {
-        box-shadow: inset 0 0 80px rgba(200, 200, 200, 0.5);
-        border: 6px solid #ccc;
-    }
+    #game-border { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; box-sizing: border-box; border: 0px solid transparent; transition: box-shadow 0.8s ease-in-out, border-color 0.8s ease-in-out; }
+    #game-border.turn-p1 { box-shadow: inset 0 0 50px rgba(255, 59, 59, 0.4); border: 4px solid rgba(255, 59, 59, 0.3); }
+    #game-border.turn-p2 { box-shadow: inset 0 0 50px rgba(0, 191, 255, 0.4); border: 4px solid rgba(0, 191, 255, 0.3); }
+    #game-border.winner-glow { box-shadow: inset 0 0 80px rgba(255, 215, 0, 0.7); border: 6px solid gold; }
+    #game-border.draw-glow { box-shadow: inset 0 0 80px rgba(200, 200, 200, 0.5); border: 6px solid #ccc; }
 
-    /* --- TEXTE & UI --- */
     h1 { margin: 10px 0 5px 0; color: gold; font-size: 24px; position: relative; z-index: 1; }
-
-    /* Info für Serienstand */
     #seriesInfo { font-size: 14px; color: #888; margin-bottom: 5px; font-weight: bold; position: relative; z-index: 2; }
+    #onlineStatus { font-size: 12px; font-weight: bold; color: #00ff00; margin: 0 auto 10px auto; max-width: 420px; display: none; }
 
-    #status {
-        margin: 10px auto; max-width: 420px;
-        display: flex; justify-content: space-between;
-        font-size: 16px; background: #333;
-        padding: 10px; border-radius: 10px;
-        position: relative; z-index: 1;
-    }
+    #status { margin: 10px auto; max-width: 420px; display: flex; justify-content: space-between; font-size: 16px; background: #333; padding: 10px; border-radius: 10px; position: relative; z-index: 1; }
     .player1 { color: #ff3b3b; font-weight: bold; }
     .player2 { color: #00bfff; font-weight: bold; }
 
     #throwsDisplay { margin: 10px 0; font-size: 18px; font-weight: bold; position: relative; z-index: 1; }
 
-    /* --- CONTROLS --- */
     #controls { margin: 0 auto; max-width: 420px; position: relative; z-index: 1; }
     #controls .row { display: flex; justify-content: center; gap: 6px; margin-bottom: 6px; }
-    #controls button {
-        flex: 1; padding: 12px; font-size: 15px; border: none; border-radius: 8px;
-        background: #444; color: white; cursor: pointer; user-select: none;
-    }
+    #controls button { flex: 1; padding: 12px; font-size: 15px; border: none; border-radius: 8px; background: #444; color: white; cursor: pointer; user-select: none; }
     #controls button:active { transform: scale(0.96); }
     #controls button.active { background: gold; color: black; font-weight: bold; }
 
-    /* --- GEWINNER TEXT (Wie in Domination) --- */
-    #winner {
-        font-size: 26px; margin: 15px 0; font-weight: bold;
-        color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5);
-        min-height: 30px; position: relative; z-index: 1;
-    }
+    #winner { font-size: 26px; margin: 15px 0; font-weight: bold; color: #00ff00; text-shadow: 0 0 10px rgba(0,255,0,0.5); min-height: 30px; position: relative; z-index: 1; }
 
-    /* --- SPIELFELD --- */
-    #board {
-        display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
-        max-width: 420px; margin: 0 auto; position: relative; z-index: 1;
-    }
-    .cell {
-        background: #e0e0e0; color: black; border-radius: 6px; min-height: 90px;
-        display: flex; flex-direction: column; justify-content: center;
-        cursor: pointer; position: relative; user-select: none;
-    }
-    /* HIER IST DIE ÄNDERUNG: GRÖSSERE SCHRIFT FÜR DIE ZAHLEN */
+    #board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-width: 420px; margin: 0 auto; position: relative; z-index: 1; }
+    .cell { background: #e0e0e0; color: black; border-radius: 6px; min-height: 90px; display: flex; flex-direction: column; justify-content: center; cursor: pointer; position: relative; user-select: none; }
     .number { font-size: 36px; font-weight: 900; color: #333; }
-    
     .x_hits { color: #ff3b3b; font-weight: bold; font-size: 14px; position: absolute; top: 5px; left: 0; width: 100%; }
     .o_hits { color: #00bfff; font-weight: bold; font-size: 14px; position: absolute; bottom: 5px; left: 0; width: 100%; }
-    
     .complete { font-size: 60px; font-weight: bold; line-height: 1; }
     .complete.x { color: #ff3b3b; }
     .complete.o { color: #00bfff; }
     .winner-cell { background: #fff2a8; border: 3px solid gold; }
 
-    /* --- PASS BUTTON --- */
-    #passBtn {
-        padding: 15px; font-size: 18px; margin-top: 15px; border-radius: 8px;
-        background-color: #2e7d32; color: white; font-weight: bold;
-        max-width: 420px; width: 100%; border: none; cursor: pointer;
-        position: relative; z-index: 1;
-    }
+    #passBtn { padding: 15px; font-size: 18px; margin-top: 15px; border-radius: 8px; background-color: #2e7d32; color: white; font-weight: bold; max-width: 420px; width: 100%; border: none; cursor: pointer; position: relative; z-index: 1; }
     #passBtn:active { background-color: #1b5e20; transform: scale(0.98); }
 </style>
 </head>
-
 <body>
 
 <div id="game-border"></div>
 
 <h1>🎯 Tic Tac Toe</h1>
 <div id="seriesInfo"></div>
+<div id="onlineStatus">🌐 Online (Raum: <span id="roomNameDisplay"></span>)</div>
 
 <div id="status">
     <div style="display:flex; flex-direction:column; align-items:flex-start;">
@@ -150,7 +78,7 @@
 
 <div id="controls">
     <div class="row">
-        <button id="singleBtn" onclick="setMultiplier(1)">Single</button>
+        <button id="singleBtn" onclick="setMultiplier(1)" class="active">Single</button>
         <button id="doubleBtn" onclick="setMultiplier(2)">Double</button>
         <button id="tripleBtn" onclick="setMultiplier(3)">Triple</button>
     </div>
@@ -168,38 +96,44 @@
 
 <button id="passBtn" onclick="passTurn()">⏭️ Zug beenden / Verfehlt</button>
 
-<script>
-// --- TURNIER LOGIK ---
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.5.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB4qDkDED5f2QlzxIzgz21qlk4uEQrfxHs",
+  authDomain: "wg-darts.firebaseapp.com",
+  databaseURL: "https://wg-darts-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "wg-darts",
+  storageBucket: "wg-darts.firebasestorage.app",
+  messagingSenderId: "750116064641",
+  appId: "1:750116064641:web:cc610da60feb3000e62c80"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
 const urlParams = new URLSearchParams(window.location.search);
 const isTournament = urlParams.get('tournament') === 'true';
-
+const roomID = urlParams.get('room');
 let name1, name2;
-let initialStarter = 1; // Standardmäßig fängt Spieler 1 an
+let initialStarter = 1;
 
 if (isTournament) {
-    // Namen aus Turnier-Speicher
     name1 = localStorage.getItem('tournament_p1') || "T-Spieler 1";
     name2 = localStorage.getItem('tournament_p2') || "T-Spieler 2";
-    // Home Button verstecken
     document.getElementById('homeBtn').style.display = 'none';
-    
-    // Serienstand anzeigen?
-    let s1 = urlParams.get('s1');
-    let s2 = urlParams.get('s2');
-    let target = urlParams.get('target');
-    if(s1 !== null) {
-        document.getElementById('seriesInfo').innerHTML = `Serie: <span style="color:#ff3b3b">${s1}</span> - <span style="color:#00bfff">${s2}</span> (First to ${target})`;
-    }
-
-    // Welcher Spieler soll starten?
-    let starterParam = urlParams.get('starter');
-    if (starterParam === '2') {
-        initialStarter = 2;
-    }
+    let s1 = urlParams.get('s1'), s2 = urlParams.get('s2'), target = urlParams.get('target');
+    if(s1 !== null) document.getElementById('seriesInfo').innerHTML = `Serie: <span style="color:#ff3b3b">${s1}</span> - <span style="color:#00bfff">${s2}</span> (First to ${target})`;
+    if (urlParams.get('starter') === '2') initialStarter = 2;
 } else {
-    // Normale Namen
     name1 = localStorage.getItem('dart_p1') || "Spieler 1";
     name2 = localStorage.getItem('dart_p2') || "Spieler 2";
+}
+
+if (roomID) {
+    document.getElementById('onlineStatus').style.display = 'block';
+    document.getElementById('roomNameDisplay').textContent = roomID;
 }
 
 let fieldNumbers=[], p1=Array(9).fill(0), p2=Array(9).fill(0);
@@ -207,15 +141,60 @@ let stats = { 1: { darts: 0, marks: 0 }, 2: { darts: 0, marks: 0 } };
 let currentPlayer=initialStarter, throwsLeft=3, multiplier=1;
 let gameOver=false, winningCombo=[], history=[];
 
-// --- INIT & RESET ---
+// --- FIREBASE SYNC LOGIK ---
+const myDeviceID = Math.random().toString(36).substring(2, 15);
+let syncVersion = 0;
+
+function syncState() {
+    if (!roomID) return;
+    syncVersion++;
+    set(ref(db, 'rooms/' + roomID + '/ttt'), {
+        fieldNumbers, p1, p2, stats, currentPlayer, throwsLeft, 
+        multiplier, gameOver, winningCombo, 
+        sender: myDeviceID, version: syncVersion
+    });
+}
+
+if (roomID) {
+    onValue(ref(db, 'rooms/' + roomID + '/ttt'), (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+        if (data.sender === myDeviceID) return;
+
+        if (data.version > syncVersion) {
+            syncVersion = data.version;
+            
+            fieldNumbers = data.fieldNumbers || [];
+            p1 = data.p1 || Array(9).fill(0);
+            p2 = data.p2 || Array(9).fill(0);
+            
+            stats = data.stats || {};
+            if (!stats[1]) stats[1] = { darts: 0, marks: 0 };
+            if (!stats[2]) stats[2] = { darts: 0, marks: 0 };
+
+            currentPlayer = data.currentPlayer;
+            throwsLeft = data.throwsLeft;
+            multiplier = data.multiplier;
+            gameOver = data.gameOver;
+            winningCombo = data.winningCombo || [];
+
+            document.getElementById("singleBtn").classList.toggle("active", multiplier===1);
+            document.getElementById("doubleBtn").classList.toggle("active", multiplier===2);
+            document.getElementById("tripleBtn").classList.toggle("active", multiplier===3);
+
+            updateUI();
+
+            // Löst visuelle Effekte & das Speichern beim Empfänger aus, falls das Spiel beendet wurde
+            if (gameOver) checkWin(); 
+        }
+    });
+}
+
 function confirmReset(hard) { if(confirm("Spiel neu starten?")) resetGame(hard); }
 
 function resetGame(hard=false) {
     history = [];
-    // 1. Pool erstellen
     let nums = [...Array(20).keys()].map(i=>i+1).concat([25]);
-
-    // HILFSFUNKTION: Echter Zufallsmischer (Fisher-Yates)
     function shuffle(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -225,235 +204,66 @@ function resetGame(hard=false) {
     }
 
     if (hard) {
-        // Hard Mode: Erst die Nicht-Bulls mischen, dann 8 nehmen + Bull
         const others = nums.filter(n=>n!==25);
-        shuffle(others); // Richtig mischen
+        shuffle(others);
         const selection = others.slice(0,8);
-        
-        // Bull an Position 5 (Index 4) einfügen
         fieldNumbers = [...selection.slice(0,4), 25, ...selection.slice(4)];
     } else {
-        // Normal Mode: Alles richtig mischen und die ersten 9 nehmen
-        shuffle(nums); // Richtig mischen
+        shuffle(nums);
         fieldNumbers = nums.slice(0,9);
     }
     
     p1.fill(0); p2.fill(0); throwsLeft=3; multiplier=1; 
     stats = { 1: { darts: 0, marks: 0 }, 2: { darts: 0, marks: 0 } };
-    
-    // Wichtig: Beim Reset (z.B. manuell über "Neu") wird wieder der definierte Startspieler genommen.
-    // Falls ihr aber wollt, dass der Verlierer anfängt etc., müsste das hier angepasst werden.
-    // Für das Turnier (bei dem die Seite neu geladen wird) passt initialStarter aber perfekt.
     currentPlayer = initialStarter; 
-    
     gameOver=false; winningCombo=[];
-    
     document.getElementById("winner").textContent = ""; 
-    setMultiplier(1);
+    
+    document.getElementById("singleBtn").classList.toggle("active", true);
+    document.getElementById("doubleBtn").classList.toggle("active", false);
+    document.getElementById("tripleBtn").classList.toggle("active", false);
+
     updateUI();
+    syncState();
 }
 
-// --- CORE LOGIC ---
 function snapshot() {
     history.push(JSON.parse(JSON.stringify({
-        p1, p2, currentPlayer, throwsLeft, multiplier, gameOver, winningCombo,
-        stats // <--- NEU: Stats werden mit gespeichert
+        p1, p2, currentPlayer, throwsLeft, multiplier, gameOver, winningCombo, stats
     })));
 }
 
 function undo() {
-    if (!history.length) return;
+    if (!history.length || gameOver) return;
     const s = history.pop();
     p1=s.p1; p2=s.p2; currentPlayer=s.currentPlayer; throwsLeft=s.throwsLeft;
     multiplier=s.multiplier; gameOver=s.gameOver; winningCombo=s.winningCombo;
-    
-    // <--- NEU: Stats wiederherstellen (mit Fallback, falls der Snapshot alt ist)
     stats = s.stats || { 1: { darts: 0, marks: 0 }, 2: { darts: 0, marks: 0 } }; 
     
-    document.getElementById("winner").textContent = gameOver ? (winningCombo.length > 0 ? `🏆 GEWINNER!` : "🤝 UNENTSCHIEDEN") : "";
+    document.getElementById("winner").textContent = "";
+    document.getElementById("singleBtn").classList.toggle("active", multiplier===1);
+    document.getElementById("doubleBtn").classList.toggle("active", multiplier===2);
+    document.getElementById("tripleBtn").classList.toggle("active", multiplier===3);
+
     updateUI();
+    syncState();
 }
 
 function setMultiplier(m) {
-    if(gameOver) return;
+    if(gameOver || throwsLeft <= 0) return;
     multiplier = m;
     document.getElementById("singleBtn").classList.toggle("active", m===1);
     document.getElementById("doubleBtn").classList.toggle("active", m===2);
     document.getElementById("tripleBtn").classList.toggle("active", m===3);
+    syncState();
 }
 
 function updateUI() {
-    // Label Updates
     const p1Label = document.getElementById("p1Label");
     const p2Label = document.getElementById("p2Label");
-    p1Label.textContent = `${name1} (X)`;
-    p2Label.textContent = `${name2} (O)`;
+    p1Label.textContent = `${name1} (X)`; p2Label.textContent = `${name2} (O)`;
     p1Label.style.opacity = currentPlayer === 1 ? "1" : "0.3";
     p2Label.style.opacity = currentPlayer === 2 ? "1" : "0.3";
-    // --- NEU: Average (Marks per Round) berechnen & anzeigen ---
-    // Berechnung: (Gesamttreffer / Geworfene Pfeile) * 3 = Treffer pro Runde
+
     let avg1 = stats[1].darts > 0 ? ((stats[1].marks / stats[1].darts) * 3).toFixed(2) : "0.00";
-    let avg2 = stats[2].darts > 0 ? ((stats[2].marks / stats[2].darts) * 3).toFixed(2) : "0.00";
-    
-    document.getElementById("p1Avg").textContent = "Ø " + avg1;
-    document.getElementById("p2Avg").textContent = "Ø " + avg2;
-    document.getElementById("throwsDisplay").textContent = `Würfe: ${throwsLeft}`;
-    
-    // RAHMEN UPDATE
-    const border = document.getElementById("game-border");
-    if (gameOver) {
-        // Prüfen ob Sieg oder Unentschieden
-        if (winningCombo.length > 0) {
-            border.className = "winner-glow";
-        } else {
-            border.className = "draw-glow"; // Neue graue Klasse
-        }
-    } else {
-        border.className = (currentPlayer === 1) ? "turn-p1" : "turn-p2";
-    }
-
-    renderBoard();
-}
-
-function renderBoard() {
-    const board = document.getElementById("board");
-    board.innerHTML = "";
-    for (let i=0; i<9; i++) {
-        const c = document.createElement("div");
-        c.className = "cell";
-        if (winningCombo.includes(i)) c.classList.add("winner-cell");
-
-        if (p1[i] >= 4) {
-            c.innerHTML = `<div class="complete x">X</div>`;
-        } else if (p2[i] >= 4) {
-            c.innerHTML = `<div class="complete o">O</div>`;
-        } else {
-            c.innerHTML = `
-                <div class="x_hits">${"X".repeat(p1[i])}</div>
-                <div class="number">${fieldNumbers[i]}</div>
-                <div class="o_hits">${"O".repeat(p2[i])}</div>
-            `;
-        }
-        c.onclick = () => clickField(i);
-        board.appendChild(c);
-    }
-}
-
-// --- GAMEPLAY ---
-function clickField(idx) {
-    if (gameOver) return;
-    if (p1[idx] >= 4 || p2[idx] >= 4) return; // Wenn schon jemand 4 hat, passiert gar nichts
-    if (fieldNumbers[idx] === 25 && multiplier === 3) return; // Kein Triple Bull
-
-    if(navigator.vibrate) navigator.vibrate(30);
-    snapshot();
-
-    // 1. Berechnen, wie viele Treffer wirklich noch zählen
-    let actualMarks = 0;
-    
-    if (currentPlayer === 1) {
-        // Wie viel fehlt noch bis zur 4? Nimm den kleineren Wert: Was fehlt ODER was geworfen wurde.
-        actualMarks = Math.min(4 - p1[idx], multiplier); 
-        p1[idx] += actualMarks; // Treffer zum Feld hinzufügen
-    } else {
-        actualMarks = Math.min(4 - p2[idx], multiplier);
-        p2[idx] += actualMarks;
-    }
-
-    // 2. Stats aktualisieren (nur mit den TATSÄCHLICHEN Treffern)
-    stats[currentPlayer].darts++;
-    stats[currentPlayer].marks += actualMarks;
-
-    throwsLeft--;
-    endThrow();
-}
-
-function endThrow() {
-    multiplier = 1; setMultiplier(1);
-    checkWin();
-    if (!gameOver && throwsLeft === 0) {
-        currentPlayer = currentPlayer === 1 ? 2 : 1;
-        throwsLeft = 3;
-    }
-    updateUI();
-}
-
-function passTurn() {
-    if (gameOver) return;
-    snapshot(); 
-    
-    // Die verbleibenden Würfe als Fehlwürfe (0 Treffer) eintragen
-    stats[currentPlayer].darts += throwsLeft;
-    
-    throwsLeft = 0; 
-    endThrow();
-}
-
-function checkWin() {
-    const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-    let winner = null;
-
-    // 1. Prüfen auf Sieg
-    for (const w of wins) {
-        if (w.every(i => p1[i] >= 4)) { winningCombo = w; winner = name1; }
-        else if (w.every(i => p2[i] >= 4)) { winningCombo = w; winner = name2; }
-    }
-
-    // 2. Wenn Sieg
-    if (winner) {
-        gameOver = true;
-        document.getElementById("winner").textContent = `🏆 ${winner} GEWINNT!`;
-        document.getElementById("winner").style.color = "#00ff00";
-        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-
-        // HIER WURDE GEÄNDERT: Stats speichern AUCH im Turnier!
-        saveWin(winner);
-
-        if (isTournament) {
-            localStorage.setItem('tournament_winner_name', winner);
-            localStorage.setItem('tournament_last_game_stats', JSON.stringify(stats)); // <--- NEUE ZEILE
-            setTimeout(() => { window.location.href = "tournament.html"; }, 3000);
-            return; 
-        }
-        return;
-    }
-
-    // 3. Wenn KEIN Sieg, prüfen auf Unentschieden
-    // Ein Unentschieden ist, wenn ALLE Felder geschlossen sind (entweder von P1 oder P2)
-    const allClosed = fieldNumbers.every((_, i) => p1[i] >= 4 || p2[i] >= 4);
-    
-    if (allClosed) {
-        gameOver = true;
-        document.getElementById("winner").textContent = "🤝 UNENTSCHIEDEN!";
-        document.getElementById("winner").style.color = "#cccccc"; // Grau/Weiß
-        
-        // Kein Konfetti bei Unentschieden, nur Redirect im Turnier
-        if (isTournament) {
-            localStorage.setItem('tournament_winner_name', 'draw');
-            localStorage.setItem('tournament_last_game_stats', JSON.stringify(stats)); // <--- NEUE ZEILE
-            setTimeout(() => { window.location.href = "tournament.html"; }, 3000);
-            return;
-        }
-        // Keine Stats speichern bei Unentschieden
-    }
-}
-
-function saveWin(winnerName) {
-    let stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
-    if (!stats[winnerName]) stats[winnerName] = { dart: 0, ttt: 0, x01: 0 };
-    if (typeof stats[winnerName] === 'number') stats[winnerName] = { dart: stats[winnerName], ttt: 0, x01: 0 };
-    stats[winnerName].ttt = (stats[winnerName].ttt || 0) + 1;
-    localStorage.setItem('allTimeStats', JSON.stringify(stats));
-}
-
-// --- WAKE LOCK ---
-async function requestWakeLock() {
-  if ('wakeLock' in navigator) { try { await navigator.wakeLock.request('screen'); } catch (err) {} }
-}
-document.addEventListener('click', requestWakeLock, { once: true });
-
-// START
-resetGame();
-</script>
-</body>
-</html>
+    let avg2 = stats[2].darts > 0 ? ((stats[2].marks / stats[2].dart
