@@ -220,16 +220,19 @@ let turnTotalPoints = 0;
 let roundThrows = { 1: [], 2: [] }; 
 let autoTurnTimer = null;
 
-// --- FIREBASE SYNC ---
+// --- FIREBASE SYNC: EXTREM ROBUST ---
 const myDeviceID = Math.random().toString(36).substring(2, 15);
-let lastServerTimestamp = 0;
+let syncVersion = 0; // Versionsnummer löst das "Falsche Uhrzeit"-Problem
 
 function syncState() {
     if (!roomID) return;
+    
+    syncVersion++; // Bei jeder Änderung zählen wir hoch
+    
     set(ref(db, 'rooms/' + roomID + '/x01'), {
         scores, startOfTurnScore, stats, currentPlayer, currentRound, 
         throwsLeft, multiplier, gameOver, roundThrows, turnTotalPoints, 
-        sender: myDeviceID, timestamp: Date.now()
+        sender: myDeviceID, version: syncVersion
     });
 }
 
@@ -237,22 +240,33 @@ if (roomID) {
     onValue(ref(db, 'rooms/' + roomID + '/x01'), (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
-        if (data.sender === myDeviceID) return;
+        if (data.sender === myDeviceID) return; // Ignoriere unsere eigenen Updates
 
-        if (data.timestamp > lastServerTimestamp) {
-            lastServerTimestamp = data.timestamp;
+        // Akzeptiere das Update nur, wenn die Version neuer ist
+        if (data.version > syncVersion) {
+            syncVersion = data.version;
             
             if (autoTurnTimer) { clearTimeout(autoTurnTimer); autoTurnTimer = null; }
 
             scores = data.scores || scores;
             startOfTurnScore = data.startOfTurnScore || startOfTurnScore;
-            stats = data.stats || stats;
+            
+            // FIX: Manuelles Wiederherstellen gelöschter Objekte
+            stats = data.stats || {};
+            if (!stats[1]) stats[1] = { throws: 0, points: 0 };
+            if (!stats[2]) stats[2] = { throws: 0, points: 0 };
+
             currentPlayer = data.currentPlayer;
             currentRound = data.currentRound;
             throwsLeft = data.throwsLeft;
             multiplier = data.multiplier;
             gameOver = data.gameOver;
-            roundThrows = data.roundThrows || { 1: [], 2: [] };
+            
+            // FIX: Firebase löscht leere Arrays! Wir stellen sie sicher wieder her.
+            roundThrows = data.roundThrows || {};
+            if (!roundThrows[1]) roundThrows[1] = [];
+            if (!roundThrows[2]) roundThrows[2] = [];
+
             turnTotalPoints = data.turnTotalPoints || 0;
 
             document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
@@ -335,7 +349,10 @@ function nextTurn() {
         currentRound++;
         document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
     }
-    currentPlayer = nextP; roundThrows[currentPlayer] = []; turnTotalPoints = 0;
+    currentPlayer = nextP; 
+    // FIX: Beide Arrays leeren, damit die alten Würfe sauber verschwinden
+    roundThrows = { 1: [], 2: [] }; 
+    turnTotalPoints = 0;
     throwsLeft = 3; startOfTurnScore[currentPlayer] = scores[currentPlayer];
     multiplier = 1; setMulti(1); updateUI(); syncState();
 }
