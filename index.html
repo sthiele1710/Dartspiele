@@ -32,17 +32,26 @@
             border-left: 8px solid gold; font-weight: bold; font-size: 18px;
             transition: transform 0.1s, background 0.2s;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            cursor: pointer;
         }
         .menu-btn:active { transform: scale(0.98); background: #333; }
         .icon { font-size: 20px; color: #666; }
 
-        /* Style für den Turnier Button */
         .tournament-btn {
             border-left-color: gold; 
             background: linear-gradient(90deg, #332b00 0%, #2a2a2a 100%);
             margin-top: 30px;
         }
 
+        /* Remote Box */
+        .remote-box {
+            background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 15px; margin: 20px 0; text-align: left;
+        }
+        .toggle-label {
+            display: flex; align-items: center; font-weight: bold; color: gold; font-size: 16px; cursor: pointer;
+        }
+        .toggle-label input { width: 20px; height: 20px; margin-right: 10px; margin-top: 0; margin-bottom: 0; }
+        
         /* Tabelle */
         table { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 13px; }
         th, td { padding: 10px 5px; border-bottom: 1px solid #333; text-align: center; }
@@ -63,27 +72,39 @@
         
         <input type="text" id="p1Name" placeholder="Name Spieler 1" oninput="saveNames()">
         <input type="text" id="p2Name" placeholder="Name Spieler 2" oninput="saveNames()">
+
+        <!-- NEU: Remote Bereich -->
+        <div class="remote-box">
+            <label class="toggle-label">
+                <input type="checkbox" id="remoteToggle" onchange="toggleRemoteUI()">
+                🌐 Online (Remote) spielen
+            </label>
+            <div id="remoteUI" style="display: none; margin-top: 15px;">
+                <p style="font-size: 13px; color: #aaa; margin: 0 0 10px 0;">Lass das Feld leer, um einen neuen Raum zu erstellen, oder gib eine ID ein, um beizutreten:</p>
+                <input type="text" id="roomID" placeholder="Raum-ID (z.B. ABCD)" style="width: 100%; text-transform: uppercase; box-sizing: border-box;">
+            </div>
+        </div>
         
         <div style="margin-top: 20px;">
-            <a href="x01.html" class="menu-btn" style="border-left-color: #00ff00;">
+            <div class="menu-btn" onclick="startGame('x01.html')" style="border-left-color: #00ff00;">
                 <span>💯 X01 (501 / 301)</span> <span class="icon">❯</span>
-            </a>
+            </div>
 
-            <a href="cricket.html" class="menu-btn" style="border-left-color: #d500f9;">
+            <div class="menu-btn" onclick="startGame('cricket.html')" style="border-left-color: #d500f9;">
                 <span>🦗 Cricket</span> <span class="icon">❯</span>
-            </a>
+            </div>
 
-            <a href="domination.html" class="menu-btn" style="border-left-color: #ff3b3b;">
+            <div class="menu-btn" onclick="startGame('domination.html')" style="border-left-color: #ff3b3b;">
                 <span>🎯 Domination</span> <span class="icon">❯</span>
-            </a>
+            </div>
             
-            <a href="tictactoe.html" class="menu-btn" style="border-left-color: #00bfff;">
+            <div class="menu-btn" onclick="startGame('tictactoe.html')" style="border-left-color: #00bfff;">
                 <span>❌ Tic Tac Toe</span> <span class="icon">❯</span>
-            </a>
+            </div>
             
-            <a href="tournament.html" class="menu-btn tournament-btn">
+            <div class="menu-btn tournament-btn" onclick="startGame('tournament.html')">
                 <span>🏆 Turnier Modus</span> <span class="icon">❯</span>
-            </a>
+            </div>
         </div>
     </div>
 
@@ -115,20 +136,45 @@
         }
 
         window.onload = () => {
-            // Wenn noch nichts im Speicher ist, setze Steffen und Jakob als Default
             if (!localStorage.getItem('dart_p1')) localStorage.setItem('dart_p1', 'Steffen');
             if (!localStorage.getItem('dart_p2')) localStorage.setItem('dart_p2', 'Jakob');
 
-            // Fülle die Eingabefelder mit den gespeicherten Werten
             document.getElementById('p1Name').value = localStorage.getItem('dart_p1');
             document.getElementById('p2Name').value = localStorage.getItem('dart_p2');
         };
+
+        // NEU: Remote UI umschalten
+        function toggleRemoteUI() {
+            const isChecked = document.getElementById('remoteToggle').checked;
+            document.getElementById('remoteUI').style.display = isChecked ? 'block' : 'none';
+        }
+
+        // NEU: Spiel starten und URL anpassen
+        function startGame(gameFile) {
+            const isRemote = document.getElementById('remoteToggle').checked;
+            
+            if (isRemote) {
+                let room = document.getElementById('roomID').value.trim().toUpperCase();
+                // Wenn keine ID eingegeben wurde, generiere eine 4-stellige zufällige ID
+                if (!room) {
+                    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                    room = '';
+                    for (let i = 0; i < 4; i++) {
+                        room += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                }
+                // Hänge die ID als Parameter an die URL (z.B. x01.html?room=ABCD)
+                window.location.href = `${gameFile}?room=${room}`;
+            } else {
+                // Normales lokales Spiel
+                window.location.href = gameFile;
+            }
+        }
 
         function renderLeaderboard() {
             const stats = JSON.parse(localStorage.getItem('allTimeStats') || '{}');
             const entries = Object.entries(stats);
             
-            // Sortieren nach Gesamt-Siegen (Alle Spiele zusammenzählen)
             entries.sort((a, b) => {
                 const dataA = typeof a[1] === 'number' ? {dart: a[1]} : a[1];
                 const dataB = typeof b[1] === 'number' ? {dart: b[1]} : b[1];
@@ -141,9 +187,7 @@
 
             const body = document.getElementById('leaderboard-body');
             body.innerHTML = entries.map(([name, rawData]) => {
-                // Fallback für alte Datenstruktur
                 const data = typeof rawData === 'number' ? { dart: rawData } : rawData;
-                
                 return `<tr>
                     <td>${name}</td>
                     <td class="num">${data.x01 || 0}</td>
