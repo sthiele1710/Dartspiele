@@ -220,15 +220,14 @@ let turnTotalPoints = 0;
 let roundThrows = { 1: [], 2: [] }; 
 let autoTurnTimer = null;
 
-// --- FIREBASE SYNC: EXTREM ROBUST ---
+// --- FIREBASE SYNC ---
 const myDeviceID = Math.random().toString(36).substring(2, 15);
-let syncVersion = 0; // Versionsnummer löst das "Falsche Uhrzeit"-Problem
+let syncVersion = 0;
+let isListening = false;
 
 function syncState() {
     if (!roomID) return;
-    
-    syncVersion++; // Bei jeder Änderung zählen wir hoch
-    
+    syncVersion++;
     set(ref(db, 'rooms/' + roomID + '/x01'), {
         scores, startOfTurnScore, stats, currentPlayer, currentRound, 
         throwsLeft, multiplier, gameOver, roundThrows, turnTotalPoints, 
@@ -236,42 +235,33 @@ function syncState() {
     });
 }
 
-if (roomID) {
+function startListening() {
+    if (!roomID || isListening) return;
+    isListening = true;
     onValue(ref(db, 'rooms/' + roomID + '/x01'), (snapshot) => {
         const data = snapshot.val();
-        if (!data) return;
-        if (data.sender === myDeviceID) return; // Ignoriere unsere eigenen Updates
+        if (!data || data.sender === myDeviceID) return;
 
-        // Akzeptiere das Update nur, wenn die Version neuer ist
         if (data.version > syncVersion) {
             syncVersion = data.version;
-            
             if (autoTurnTimer) { clearTimeout(autoTurnTimer); autoTurnTimer = null; }
-
             scores = data.scores || scores;
             startOfTurnScore = data.startOfTurnScore || startOfTurnScore;
             
-            // FIX: Manuelles Wiederherstellen gelöschter Objekte
             stats = data.stats || {};
             if (!stats[1]) stats[1] = { throws: 0, points: 0 };
             if (!stats[2]) stats[2] = { throws: 0, points: 0 };
 
-            currentPlayer = data.currentPlayer;
-            currentRound = data.currentRound;
-            throwsLeft = data.throwsLeft;
-            multiplier = data.multiplier;
-            gameOver = data.gameOver;
+            currentPlayer = data.currentPlayer; currentRound = data.currentRound;
+            throwsLeft = data.throwsLeft; multiplier = data.multiplier; gameOver = data.gameOver;
             
-            // FIX: Firebase löscht leere Arrays! Wir stellen sie sicher wieder her.
             roundThrows = data.roundThrows || {};
             if (!roundThrows[1]) roundThrows[1] = [];
             if (!roundThrows[2]) roundThrows[2] = [];
 
             turnTotalPoints = data.turnTotalPoints || 0;
-
             document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
             
-            // Buttons visuell updaten
             ["single","double","triple"].forEach(id=>document.getElementById(id).classList.remove("active"));
             const btn = document.getElementById(multiplier===1?"single":multiplier===2?"double":"triple");
             if(btn) btn.classList.add("active");
@@ -293,8 +283,7 @@ function initGame() {
     scores = {1: startScore, 2: startScore};
     startOfTurnScore = {1: startScore, 2: startScore};
     stats = { 1: { throws: 0, points: 0 }, 2: { throws: 0, points: 0 } };
-    currentPlayer = initialPlayer;
-    currentRound = 1;
+    currentPlayer = initialPlayer; currentRound = 1;
     document.getElementById('roundDisplay').textContent = "Runde: 1";
     throwsLeft = 3; multiplier = 1; gameOver = false; history = [];
     roundThrows = { 1: [], 2: [] }; turnTotalPoints = 0;
@@ -303,14 +292,7 @@ function initGame() {
     setMulti(1); updateUI(); drawBoard(); syncState();
 }
 
-function snapshot() {
-    history.push(JSON.stringify({
-        scores: {...scores}, startOfTurnScore: {...startOfTurnScore},
-        stats: JSON.parse(JSON.stringify(stats)), currentPlayer, throwsLeft, 
-        multiplier, gameOver, roundThrows: JSON.parse(JSON.stringify(roundThrows)),
-        currentRound, turnTotalPoints
-    }));
-}
+function snapshot() { history.push(JSON.stringify({ scores: {...scores}, startOfTurnScore: {...startOfTurnScore}, stats: JSON.parse(JSON.stringify(stats)), currentPlayer, throwsLeft, multiplier, gameOver, roundThrows: JSON.parse(JSON.stringify(roundThrows)), currentRound, turnTotalPoints })); }
 
 function undo() {
     if(!history.length || gameOver) return;
@@ -320,7 +302,6 @@ function undo() {
     currentPlayer = s.currentPlayer; throwsLeft = s.throwsLeft; multiplier = s.multiplier;
     gameOver = s.gameOver; roundThrows = s.roundThrows; currentRound = s.currentRound || 1;
     turnTotalPoints = s.turnTotalPoints || 0;
-    
     document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
     updateUI(); syncState();
 }
@@ -349,10 +330,7 @@ function nextTurn() {
         currentRound++;
         document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
     }
-    currentPlayer = nextP; 
-    // FIX: Beide Arrays leeren, damit die alten Würfe sauber verschwinden
-    roundThrows = { 1: [], 2: [] }; 
-    turnTotalPoints = 0;
+    currentPlayer = nextP; roundThrows = { 1: [], 2: [] }; turnTotalPoints = 0;
     throwsLeft = 3; startOfTurnScore[currentPlayer] = scores[currentPlayer];
     multiplier = 1; setMulti(1); updateUI(); syncState();
 }
@@ -493,7 +471,26 @@ document.addEventListener('click', async () => { if ('wakeLock' in navigator) tr
 window.throwDart = throwDart; window.setMulti = setMulti; window.undo = undo;
 window.nextTurn = nextTurn; window.confirmReset = confirmReset; window.resetGame = resetGame;
 
-initGame();
-</script>
-</body>
-</html>
+if (roomID) {
+    const isHost = (!roomID || localStorage.getItem('wg_room_host') === roomID);
+    get(ref(db, 'rooms/' + roomID + '/x01')).then((snapshot) => {
+        const data = snapshot.val();
+        if (data && data.version) syncVersion = data.version;
+        
+        if (isHost && (!data || data.gameOver)) {
+            initGame();
+        } else if (data && !data.gameOver) {
+            scores = data.scores || scores;
+            startOfTurnScore = data.startOfTurnScore || startOfTurnScore;
+            stats = data.stats || {1:{throws:0,points:0}, 2:{throws:0,points:0}};
+            currentPlayer = data.currentPlayer; currentRound = data.currentRound;
+            throwsLeft = data.throwsLeft; multiplier = data.multiplier; gameOver = data.gameOver;
+            roundThrows = data.roundThrows || { 1: [], 2: [] }; turnTotalPoints = data.turnTotalPoints || 0;
+            document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
+            updateUI();
+        }
+        startListening();
+    });
+} else {
+    initGame();
+}
