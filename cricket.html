@@ -180,9 +180,11 @@ let currentPlayer = initialPlayer;
 let currentRound = 1;
 let throwsLeft = 3, multiplier = 1, gameOver = false, history = [], turnTotalPoints = 0, autoTurnTimer = null;
 
+
 // --- FIREBASE SYNC ---
 const myDeviceID = Math.random().toString(36).substring(2, 15);
 let syncVersion = 0;
+let isListening = false;
 
 function syncState() {
     if (!roomID) return;
@@ -194,7 +196,9 @@ function syncState() {
     });
 }
 
-if (roomID) {
+function startListening() {
+    if (!roomID || isListening) return;
+    isListening = true;
     onValue(ref(db, 'rooms/' + roomID + '/cricket'), (snapshot) => {
         const data = snapshot.val();
         if (!data || data.sender === myDeviceID) return;
@@ -205,7 +209,6 @@ if (roomID) {
 
             scores = data.scores || scores;
             
-            // FIX: Firebase vergisst 0-Werte und leere Objekte. Hier fangen wir das ab!
             marks = data.marks || {};
             cricketNums.forEach(n => {
                 if (!marks[n]) marks[n] = {1:0, 2:0};
@@ -229,7 +232,7 @@ if (roomID) {
             if(btn) btn.classList.add("active");
 
             updateUI();
-            if (gameOver) checkWin(); // Re-triggert Konfetti und Weiterleitung
+            if (gameOver) checkWin(); 
         }
     });
 }
@@ -245,12 +248,7 @@ function initGame() {
     setMulti(1); updateUI(); drawBoard(); syncState();
 }
 
-function snapshot() {
-    history.push(JSON.stringify({
-        scores: {...scores}, marks: JSON.parse(JSON.stringify(marks)),
-        currentPlayer, throwsLeft, multiplier, gameOver, currentRound, turnTotalPoints
-    }));
-}
+function snapshot() { history.push(JSON.stringify({ scores: {...scores}, marks: JSON.parse(JSON.stringify(marks)), currentPlayer, throwsLeft, multiplier, gameOver, currentRound, turnTotalPoints })); }
 
 function undo() {
     if(!history.length || gameOver) return;
@@ -433,7 +431,34 @@ document.addEventListener('click', async () => { if ('wakeLock' in navigator) tr
 window.throwDart = throwDart; window.setMulti = setMulti; window.undo = undo;
 window.nextTurn = nextTurn; window.confirmReset = confirmReset; window.resetGame = resetGame;
 
-initGame();
-</script>
-</body>
-</html>
+if (roomID) {
+    const isHost = (!roomID || localStorage.getItem('wg_room_host') === roomID);
+    get(ref(db, 'rooms/' + roomID + '/cricket')).then((snapshot) => {
+        const data = snapshot.val();
+        if (data && data.version) syncVersion = data.version;
+        
+        if (isHost && (!data || data.gameOver)) {
+            initGame();
+        } else if (data && !data.gameOver) {
+            scores = data.scores || scores;
+            
+            marks = data.marks || {};
+            cricketNums.forEach(n => {
+                if (!marks[n]) marks[n] = {1:0, 2:0};
+                else {
+                    if (marks[n][1] === undefined) marks[n][1] = 0;
+                    if (marks[n][2] === undefined) marks[n][2] = 0;
+                }
+            });
+
+            currentPlayer = data.currentPlayer; currentRound = data.currentRound;
+            throwsLeft = data.throwsLeft; multiplier = data.multiplier; gameOver = data.gameOver;
+            turnTotalPoints = data.turnTotalPoints || 0;
+            document.getElementById('roundDisplay').textContent = "Runde: " + currentRound;
+            updateUI();
+        }
+        startListening();
+    });
+} else {
+    initGame();
+}
