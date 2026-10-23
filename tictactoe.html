@@ -139,8 +139,10 @@ let stats = { 1: { darts: 0, marks: 0 }, 2: { darts: 0, marks: 0 } };
 let currentPlayer = initialStarter, throwsLeft = 3, multiplier = 1;
 let gameOver = false, winningCombo = [], history = [];
 
+// --- FIREBASE SYNC ---
 const myDeviceID = Math.random().toString(36).substring(2, 15);
 let syncVersion = 0;
+let isListening = false; // Verhindert doppeltes Lauschen
 
 function syncState() {
     if (!roomID) return;
@@ -152,7 +154,10 @@ function syncState() {
     });
 }
 
-if (roomID) {
+// HIER IST DER FIX: Lauschen als eigene Funktion!
+function startListening() {
+    if (!roomID || isListening) return;
+    isListening = true;
     onValue(ref(db, 'rooms/' + roomID + '/ttt'), (snapshot) => {
         const data = snapshot.val();
         if (!data) return;
@@ -400,7 +405,7 @@ document.addEventListener('click', async () => { if ('wakeLock' in navigator) tr
 window.clickField = clickField; window.setMultiplier = setMultiplier; window.undo = undo;
 window.passTurn = passTurn; window.confirmReset = confirmReset; window.resetGame = resetGame;
 
-// HIER IST DER FIX: Die verbesserte Start-Logik
+// HIER IST DER FIX FÜR DEN NEUSTART:
 if (roomID) {
     const isHost = (!roomID || localStorage.getItem('wg_room_host') === roomID);
     get(ref(db, 'rooms/' + roomID + '/ttt')).then((snapshot) => {
@@ -410,12 +415,23 @@ if (roomID) {
             syncVersion = data.version;
         }
         
-        if (isHost) {
-            // Host mischt neu, wenn es noch kein Spiel gibt ODER das alte beendet war (Neue Runde!)
-            if (!data || data.gameOver) {
-                resetGame(); 
-            }
+        // Host räumt die Datenbank auf und startet ein frisches Spiel
+        if (isHost && (!data || data.gameOver)) {
+            resetGame(); 
+        } 
+        // Gast übernimmt den laufenden Stand (falls er mittendrin beitritt)
+        else if (data && !data.gameOver) {
+            fieldNumbers = data.fieldNumbers || fieldNumbers;
+            p1 = data.p1 || p1; p2 = data.p2 || p2;
+            stats = data.stats || { 1: { darts: 0, marks: 0 }, 2: { darts: 0, marks: 0 } };
+            currentPlayer = data.currentPlayer; throwsLeft = data.throwsLeft;
+            multiplier = data.multiplier; gameOver = data.gameOver;
+            winningCombo = data.winningCombo || [];
+            updateUI();
         }
+        
+        // Erst NACH dem Aufräumen schalten wir den Lauscher scharf!
+        startListening();
     });
 } else {
     resetGame(); 
